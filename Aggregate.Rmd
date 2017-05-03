@@ -1,0 +1,139 @@
+---
+title: "AggregateData"
+author: "Ben Weinstein"
+date: "May 2, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(taxize)
+library(dplyr)
+library(stringr)
+library(gdata)
+library(chron)
+
+basename="C:/Users/Ben/Dropbox/Ecuador hummingbird project/Public Folder/Data"
+```
+
+#Transect Data
+
+```{r}
+transect_files<-list.files(basename,recursive=TRUE,pattern="transect_",full.names=T)
+
+#only csv files
+transect_files<-transect_files[str_detect(transect_files,".csv")]
+
+transect_csv<-lapply(transect_files,function(x){
+  y<-read.csv(x)
+  #turn waypoints to character for the moment
+  y$waypoint<-as.character(y$waypoint)
+  y$total_flowers<-as.character(y$total_flowers)
+  
+  return(y)
+})
+
+#Combine files
+transect_data<-bind_rows(transect_csv)
+#turn total flowers back to numeric
+transect_data$total_flowers<-as.numeric(transect_data$total_flowers)
+
+```
+
+## Cleaning
+
+```{r}
+#Temporary combine the plant field name columns
+transect_data[is.na(transect_data$plant_field_name),"plant_field_name"]<-transect_data[is.na(transect_data$plant_field_name),"plant_species"]
+
+#time stamp, standardize, with seconds?
+
+#if it only has two colons, add 00 seconds
+nosec<-str_count(transect_data$time,":")==1
+transect_data[nosec,"time"]<-paste(transect_data[nosec,"time"],":00",sep="")
+
+transect_data$Time<-format(strptime(transect_data$time,format="%H:%M:%S"),"%H:%M:%S")
+
+#date, with two digit years? Standardize to 4.
+is2years<-function(x){ nchar(str_match(x,"\\d+/\\d+/(\\d+)")[,2])==2}
+
+is2<-sapply(transect_data$date,is2years)
+
+#create cleaned data columns
+transect_data$Date<-NA
+
+transect_data$Date[is2]<-format(strptime(transect_data$date[is2],format="%d/%m/%y"),"%d/%m/%Y")
+
+transect_data$Date[!is2]<-format(strptime(transect_data$date[!is2],format="%d/%m/%Y"),"%d/%m/%Y")
+
+#Month and year column
+transect_data$Month<-months(strptime(transect_data$Date,"%d/%m/%Y"))
+
+transect_data$Year<-years(strptime(transect_data$Date,"%d/%m/%Y"))
+
+#TODO taxize and name standardization
+
+#hummingbird name column needs to be standardized, NO CAPS for any column
+
+transect_clean<-transect_data %>% select(Date,Time,Month,Year,site,transect_code,plant_field_name,total_flowers,waypoint,height,hummingbird,comment)
+
+```
+
+## Divide into plant and hummingbird transects
+
+```{r}
+hummingbird_transects<-transect_clean %>% filter(!hummingbird=="")
+
+#What's up with cambugan, alot of no total flower counts?
+plant_transects<-transect_clean %>% filter(!plant_field_name=="") %>% filter(!is.na(total_flowers))
+```
+
+## Combine with gps data
+
+## Write to file
+
+```{r}
+#plants
+write.csv(hummingbird_transects,"C:/Users/Ben/Dropbox/Ecuador hummingbird project/Public Folder/Data/Cleaned/HummingbirdTransects.csv")
+
+#write to shiny server
+write.csv(hummingbird_transects,"HummingbirdData/HummingbirdTransects.csv")
+
+#plants
+write.csv(plant_transects,"C:/Users/Ben/Dropbox/Ecuador hummingbird project/Public Folder/Data/Cleaned/PlantTransects.csv")
+
+#write to shiny server
+write.csv(plant_transects,"HummingbirdData/PlantTransects.csv")
+```
+
+#Camera Data
+
+```{r}
+
+camera_files<-list.files(basename,recursive=TRUE,pattern="camera_",full.names = T)
+
+#only csv files
+transect_files<-transect_files[str_detect(transect_files,".csv")]
+
+camera_csv<-lapply(camera_files,function(x){
+  read.csv(x)
+})
+
+camera_dat<-bind_rows(camera_csv)
+```
+
+#Interaction Data
+
+```{r}
+int_files<-list.files(basename,recursive=TRUE,pattern="camera_",full.names = T)
+
+#remove example file
+int_files<-int_files[!int_files %in% "camera_example_file.xls"]    
+camera_xls<-lapply(int_files,function(x){
+  read.csv(x)
+})
+
+camera_dat<-bind_rows(camera_csv)
+```
+
+## Write cleaned data to three seperate files

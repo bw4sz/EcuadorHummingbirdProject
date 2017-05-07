@@ -19,7 +19,12 @@ shinyUI(fluidPage(
   # Sidebar with a slider input for number of bins 
   leafletOutput("mymap"),
   
+  #Data Status, last updated. sys.time()
   #Transects
-  inputPanel("Flower Transects"),
-  tableOutput('tran_table')
-))
+  mainPanel(
+    h1("Flower Transects"),
+  tableOutput('tran_table'),
+  plotOutput('phenology'),
+  h1("Cameras"),
+  tableOutput('cam_table')
+)))

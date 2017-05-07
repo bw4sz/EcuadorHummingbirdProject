@@ -12,6 +12,7 @@ library(dplyr)
 library(stringr)
 library(gdata)
 library(chron)
+library(readxl)
 
 basename="C:/Users/Ben/Dropbox/Ecuador hummingbird project/Public Folder/Data"
 ```
@@ -21,11 +22,11 @@ basename="C:/Users/Ben/Dropbox/Ecuador hummingbird project/Public Folder/Data"
 ```{r}
 transect_files<-list.files(basename,recursive=TRUE,pattern="transect_",full.names=T)
 
-#only csv files
-transect_files<-transect_files[str_detect(transect_files,".csv")]
+#only xlsx files
+transect_files<-transect_files[str_detect(transect_files,".xlsx")]
 
-transect_csv<-lapply(transect_files,function(x){
-  y<-read.csv(x)
+transect_xlsx<-lapply(transect_files,function(x){
+  y<-read_xlsx(x)
   #turn waypoints to character for the moment
   y$waypoint<-as.character(y$waypoint)
   y$total_flowers<-as.character(y$total_flowers)
@@ -34,7 +35,7 @@ transect_csv<-lapply(transect_files,function(x){
 })
 
 #Combine files
-transect_data<-bind_rows(transect_csv)
+transect_data<-bind_rows(transect_xlsx)
 #turn total flowers back to numeric
 transect_data$total_flowers<-as.numeric(transect_data$total_flowers)
 
@@ -43,39 +44,17 @@ transect_data$total_flowers<-as.numeric(transect_data$total_flowers)
 ## Cleaning
 
 ```{r}
-#Temporary combine the plant field name columns
-transect_data[is.na(transect_data$plant_field_name),"plant_field_name"]<-transect_data[is.na(transect_data$plant_field_name),"plant_species"]
-
-#time stamp, standardize, with seconds?
-
-#if it only has two colons, add 00 seconds
-nosec<-str_count(transect_data$time,":")==1
-transect_data[nosec,"time"]<-paste(transect_data[nosec,"time"],":00",sep="")
-
-transect_data$Time<-format(strptime(transect_data$time,format="%H:%M:%S"),"%H:%M:%S")
-
-#date, with two digit years? Standardize to 4.
-is2years<-function(x){ nchar(str_match(x,"\\d+/\\d+/(\\d+)")[,2])==2}
-
-is2<-sapply(transect_data$date,is2years)
-
-#create cleaned data columns
-transect_data$Date<-NA
-
-transect_data$Date[is2]<-format(strptime(transect_data$date[is2],format="%d/%m/%y"),"%d/%m/%Y")
-
-transect_data$Date[!is2]<-format(strptime(transect_data$date[!is2],format="%d/%m/%Y"),"%d/%m/%Y")
-
 #Month and year column
-transect_data$Month<-months(strptime(transect_data$Date,"%d/%m/%Y"))
-
-transect_data$Year<-years(strptime(transect_data$Date,"%d/%m/%Y"))
+transect_data$Month<-months(strptime(transect_data$date,"%d/%m/%Y"))
+transect_data$Year<-years(strptime(transect_data$date,"%d/%m/%Y"))
 
 #TODO taxize and name standardization
 
+#revised name matching
+
 #hummingbird name column needs to be standardized, NO CAPS for any column
 
-transect_clean<-transect_data %>% select(Date,Time,Month,Year,site,transect_code,plant_field_name,total_flowers,waypoint,height,hummingbird,comment)
+transect_clean<-transect_data %>% select(date,Month,Year,site,plant_field_name,total_flowers,waypoint,height,hummingbird,comment)
 
 ```
 
@@ -97,7 +76,7 @@ plant_transects<-transect_clean %>% filter(!plant_field_name=="") %>% filter(!is
 write.csv(hummingbird_transects,"C:/Users/Ben/Dropbox/Ecuador hummingbird project/Public Folder/Data/Cleaned/HummingbirdTransects.csv")
 
 #write to shiny server
-write.csv(hummingbird_transects,"HummingbirdData/HummingbirdTransects.csv")
+write.csv(hummingbird_transects,"HummingbirdData/HummingbirdTransects.xlsx")
 
 #plants
 write.csv(plant_transects,"C:/Users/Ben/Dropbox/Ecuador hummingbird project/Public Folder/Data/Cleaned/PlantTransects.csv")
@@ -109,31 +88,90 @@ write.csv(plant_transects,"HummingbirdData/PlantTransects.csv")
 #Camera Data
 
 ```{r}
+camera_files<-list.files(basename,recursive=TRUE,pattern="cameras",full.names = T)
 
-camera_files<-list.files(basename,recursive=TRUE,pattern="camera_",full.names = T)
+#only xlsx files
+camera_files<-camera_files[str_detect(camera_files,".xlsx")]
 
-#only csv files
-transect_files<-transect_files[str_detect(transect_files,".csv")]
-
-camera_csv<-lapply(camera_files,function(x){
-  read.csv(x)
+camera_xlsx<-lapply(camera_files,function(x){
+  print(x)
+  j<-read_xlsx(x)
+  j$waypoint<-as.character(j$waypoint)
+  j$card_id<-as.character(j$card_id)
+  return(j)
 })
 
-camera_dat<-bind_rows(camera_csv)
+camera_dat<-bind_rows(camera_xlsx)
+```
+
+## Cleaning
+
+```{r}
+#Month and year column
+camera_dat$Month<-months(strptime(camera_dat$start_date,"%d/%m/%Y"))
+camera_dat$Year<-years(strptime(camera_dat$start_date,"%d/%m/%Y"))
+
+##need to standardize plant species to read from revised plant names
+
+##TODO TAXIZE
+```
+
+## Combine with GPS data
+
+## Write to file
+
+```{r}
+#write to dropbox
+write.csv(camera_dat,"C:/Users/Ben/Dropbox/Ecuador hummingbird project/Public Folder/Data/Cleaned/Cameras.csv")
+
+#write to shiny server
+write.csv(camera_dat,"HummingbirdData/Cameras.csv")
 ```
 
 #Interaction Data
 
 ```{r}
-int_files<-list.files(basename,recursive=TRUE,pattern="camera_",full.names = T)
+int_files<-list.files(basename,recursive=TRUE,pattern="observations",full.names = T)
 
-#remove example file
-int_files<-int_files[!int_files %in% "camera_example_file.xls"]    
-camera_xls<-lapply(int_files,function(x){
-  read.csv(x)
+#only xlsx files
+int_files<-int_files[str_detect(int_files,".xlsx")]
+
+int_data<-lapply(int_files,function(x){
+  j<-read_xlsx(x)
+  j$time<-as.character(j$time)
+  j$filename<-as.character(j$filename)
+  return(j)
 })
 
-camera_dat<-bind_rows(camera_csv)
+int_data<-bind_rows(int_data)
 ```
 
-## Write cleaned data to three seperate files
+## Cleaning
+
+```{r}
+
+#get site ID
+int_data$waypoint
+
+#for the cameras that don't match, look in comment field.
+
+#taxize
+unique(int_data$hummingbird)
+```
+
+## Combine with gps data
+
+```{r}
+
+
+```
+
+## Write to file
+
+```{r}
+#write to dropbox
+write.csv(int_data,"C:/Users/Ben/Dropbox/Ecuador hummingbird project/Public Folder/Data/Cleaned/Interactions.csv")
+
+#write to shiny server
+write.csv(int_data,"HummingbirdData/Interactions.csv")
+```

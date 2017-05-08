@@ -6,15 +6,98 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+library(maptools)
+library(plotKML)
 library(ggplot2)
 library(taxize)
 library(dplyr)
 library(stringr)
-library(gdata)
 library(chron)
 library(readxl)
 
 basename="C:/Users/Ben/Dropbox/Ecuador hummingbird project/Public Folder/Data"
+```
+
+#GPS Data
+
+```{r}
+allwaypoints<-list.files(basename,recursive=TRUE,full.name=TRUE,pattern=".gpx")
+```
+
+```{r}
+#read in waypoints
+wayfiles<-function(x){
+    try(k<-readGPX(x,waypoints=TRUE)$waypoints)
+    k$site<-str_match(x,"(\\w+)/waypoints")[2]
+    if("cmt" %in% (colnames(k))){
+      k$time<-k$cmt
+    }
+    return(k)
+  }
+wpoints<-lapply(allwaypoints,wayfiles)
+wpoints<-wpoints[!sapply(wpoints,length)==1]
+
+wpoints<-lapply(wpoints,function(x){
+  k<-x %>% dplyr::select(lon,lat,elevation=ele,time,waypoint=name,site)
+})
+
+wpoints<-rbind_all(wpoints)
+```
+
+```{r}
+#Standardize time field
+
+get_time<-function(x){
+  
+  if(nchar(x)==20){
+    b<-strsplit(as.character(x),"T")[[1]][2]
+    #remove the z
+    b<-strsplit(as.character(b),"Z")[[1]][1]
+    timet<-format(strptime(b,"%H:%M:%S"),"%H:%M:%S")
+    }
+
+#poco de choco string, ask nicole to change her GPS to english abbreviations?
+if(nchar(x)==17){
+  timet<-strsplit(x," ")[[1]][[2]]
+}
+  return(timet)
+}
+
+wpoints$time_gps<-sapply(wpoints$time,get_time)
+```
+
+```{r}
+#standardize date field
+get_date<-function(x){
+  if(nchar(x)==20){
+    b<-strsplit(as.character(x),"T")[[1]][1]
+    #remove the z
+    datet<-format(strptime(b,"%Y-%m-%d"),"%d-%m-%Y")
+    }
+
+#poco de choco string, ask nicole to change her GPS to english abbreviations?
+  if(nchar(x)==17){
+    datet<-NA
+  }
+  return(datet)
+}
+
+wpoints$date_gps<-sapply(wpoints$time,get_date)
+
+#create site id
+wpoints$ID<-paste(wpoints$site,wpoints$waypoint,sep="_")
+
+#delete duplicates
+wpoints<-wpoints[!duplicated(wpoints),]
+```
+
+
+```{r}
+#write gps points
+write.csv(wpoints,"C:/Users/Ben/Dropbox/Ecuador hummingbird project/Public Folder/Data/Cleaned/GPS.csv")
+
+#Write in case we want to visualize with the shiny data
+write.csv(wpoints,"HummingbirdData/GPS.csv")
 ```
 
 #Transect Data
@@ -38,7 +121,6 @@ transect_xlsx<-lapply(transect_files,function(x){
 transect_data<-bind_rows(transect_xlsx)
 #turn total flowers back to numeric
 transect_data$total_flowers<-as.numeric(transect_data$total_flowers)
-
 ```
 
 ## Cleaning
@@ -54,9 +136,20 @@ transect_data$Year<-years(strptime(transect_data$date,"%d/%m/%Y"))
 
 #hummingbird name column needs to be standardized, NO CAPS for any column
 
-transect_clean<-transect_data %>% select(date,Month,Year,site,plant_field_name,total_flowers,waypoint,height,hummingbird,comment)
+transect_data<-transect_data %>% select(date,Month,Year,site,plant_field_name,total_flowers,waypoint,height,hummingbird,comment)
 
 ```
+
+## Combine with gps data
+
+```{r}
+
+transect_data$ID<-paste(transect_data$site,transect_data$waypoint,sep="_")
+transect_gps<-transect_data %>% left_join(wpoints,by="ID") %>% select(-time,-waypoint.x,waypoint=waypoint.y)
+
+paste(transect_gps %>% filter(is.na(lon)) %>% nrow(.), " transect points missing GPS data")
+```
+
 
 ## Divide into plant and hummingbird transects
 
@@ -66,8 +159,6 @@ hummingbird_transects<-transect_clean %>% filter(!hummingbird=="")
 #What's up with cambugan, alot of no total flower counts?
 plant_transects<-transect_clean %>% filter(!plant_field_name=="") %>% filter(!is.na(total_flowers))
 ```
-
-## Combine with gps data
 
 ## Write to file
 
@@ -94,7 +185,6 @@ camera_files<-list.files(basename,recursive=TRUE,pattern="cameras",full.names = 
 camera_files<-camera_files[str_detect(camera_files,".xlsx")]
 
 camera_xlsx<-lapply(camera_files,function(x){
-  print(x)
   j<-read_xlsx(x)
   j$waypoint<-as.character(j$waypoint)
   j$card_id<-as.character(j$card_id)
@@ -116,7 +206,15 @@ camera_dat$Year<-years(strptime(camera_dat$start_date,"%d/%m/%Y"))
 ##TODO TAXIZE
 ```
 
-## Combine with GPS data
+## Combine with gps data
+
+```{r}
+
+camera_dat$ID<-paste(camera_dat$site,camera_dat$waypoint,sep="_")
+camera_gps<-camera_dat %>% left_join(wpoints,by="ID") %>% select(-time,-waypoint.x,waypoint=waypoint.y,site=site.x)
+
+paste(camera_gps %>% filter(is.na(lon)) %>% nrow(.), " camera points missing GPS data")
+```
 
 ## Write to file
 
@@ -138,6 +236,7 @@ int_files<-int_files[str_detect(int_files,".xlsx")]
 
 int_data<-lapply(int_files,function(x){
   j<-read_xlsx(x)
+  try(j$site<-str_match(x,"(\\w+)/observations")[2])
   j$time<-as.character(j$time)
   j$filename<-as.character(j$filename)
   return(j)
@@ -149,29 +248,48 @@ int_data<-bind_rows(int_data)
 ## Cleaning
 
 ```{r}
-
-#get site ID
-int_data$waypoint
-
-#for the cameras that don't match, look in comment field.
-
-#taxize
-unique(int_data$hummingbird)
+#TODO TAXIZE< SCREEN OUT TROCHILIDAE
 ```
 
-## Combine with gps data
+## Combine with camera data
 
 ```{r}
+int_data$ID<-paste(int_data$site,int_data$waypoint,sep="_")
+tojoin<-camera_gps %>% select(ID,plant_field_name,lon,lat,elevation)
+int_gps<-int_data %>% left_join(tojoin,by="ID")
+```
 
+```{r}
+#interactions within 20 seconds are condensced to the same event
+int_gps$timestamp<-as.POSIXct(paste(int_gps$date,int_gps$time),format=" %d/%m/%Y %H:%M:%S",tz="EST")
 
+difftimeall<-function(x){
+  out<-c()
+  out[1]<-NA
+  for(i in 1:length(x)){
+    out[i+1]<-difftime(x[i+1],x[i],units="mins")
+  }
+  return(data.frame(time_since=out))
+}
+
+#remove observations within 1 minute
+too_close<-int_gps %>% group_by(ID) %>% arrange(timestamp) %>% do(difftimeall(.$timestamp)) %>% filter(time_since<1) %>% .$ID
+
+int_gps<-int_gps %>% filter(!ID %in% too_close)
+
+#drop without hummingbird data
+int_gps<-int_gps %>% filter(!is.na(hummingbird))
+
+#missing gps data
+paste(int_gps %>% filter(is.na(lon)) %>% nrow(.), "records missing gps data")
 ```
 
 ## Write to file
 
 ```{r}
 #write to dropbox
-write.csv(int_data,"C:/Users/Ben/Dropbox/Ecuador hummingbird project/Public Folder/Data/Cleaned/Interactions.csv")
+write.csv(int_gps,"C:/Users/Ben/Dropbox/Ecuador hummingbird project/Public Folder/Data/Cleaned/Interactions.csv")
 
 #write to shiny server
-write.csv(int_data,"HummingbirdData/Interactions.csv")
+write.csv(int_gps,"HummingbirdData/Interactions.csv")
 ```

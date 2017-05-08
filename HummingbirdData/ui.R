@@ -26,5 +26,8 @@ shinyUI(fluidPage(
   tableOutput('tran_table'),
   plotOutput('phenology'),
   h1("Cameras"),
-  tableOutput('cam_table')
+  tableOutput('cam_table'),
+  "Observations",
+  tableOutput('int_table'),
+  plotOutput('int_plot')
 )))

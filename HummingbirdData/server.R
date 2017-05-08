@@ -43,7 +43,20 @@ server <- function(input, output, session) {
   int_data<-read.csv("Interactions.csv")
   
   #Summary Table
-  int_data %>% group_by(site) %>% summarize(n=n(),hummingbird_species=length(unique(hummingbird)))
+  int_table<-int_data %>% group_by(site) %>% summarize(Observations=n(),hummingbird_species=length(unique(hummingbird)),plant_species=length(unique(plant_field_name)))
+  output$int_table<-renderTable(int_table)
+  
+  #interaction table
+  net_table<-int_data %>% group_by(plant_field_name,hummingbird) %>% summarize(n=n()) %>% arrange()
+  net_table<-droplevels(net_table)
+  hum_ord<-net_table %>% group_by(hummingbird) %>% summarize(n=n()) %>% arrange(n) %>% .$hummingbird
+  plant_ord<-net_table %>% group_by(plant_field_name) %>% summarize(n=n()) %>% arrange(desc(n)) %>% .$plant_field_name
+  
+  net_table$hummingbird<-factor(net_table$hummingbird,levels=hum_ord)
+  net_table$plant_field_name<-factor(net_table$plant_field_name,levels = plant_ord)
+  int_plot<-ggplot(net_table,aes(x=plant_field_name,y=hummingbird,fill=n)) + geom_tile() + labs(y="Hummingbird",x="Plant",fill="Observations") + theme(axis.text.x=element_text(angle=-90))
+  output$int_plot<-renderPlot(int_plot)
+  
   ##plant map  
   
   ##Bird map

@@ -143,9 +143,8 @@ transect_data<-transect_data %>% select(date,Month,Year,site,plant_field_name,to
 ## Combine with gps data
 
 ```{r}
-
 transect_data$ID<-paste(transect_data$site,transect_data$waypoint,sep="_")
-transect_gps<-transect_data %>% left_join(wpoints,by="ID") %>% select(-time,-waypoint.x,waypoint=waypoint.y)
+transect_gps<-transect_data %>% left_join(wpoints,by="ID") %>% select(-time,-waypoint.x,waypoint=waypoint.y,-site.y,site=site.x)
 
 paste(transect_gps %>% filter(is.na(lon)) %>% nrow(.), " transect points missing GPS data")
 ```
@@ -154,10 +153,10 @@ paste(transect_gps %>% filter(is.na(lon)) %>% nrow(.), " transect points missing
 ## Divide into plant and hummingbird transects
 
 ```{r}
-hummingbird_transects<-transect_clean %>% filter(!hummingbird=="")
+hummingbird_transects<-transect_gps %>% filter(!hummingbird=="")
 
 #What's up with cambugan, alot of no total flower counts?
-plant_transects<-transect_clean %>% filter(!plant_field_name=="") %>% filter(!is.na(total_flowers))
+plant_transects<-transect_gps %>% filter(!plant_field_name=="") %>% filter(!is.na(total_flowers))
 ```
 
 ## Write to file

@@ -24,6 +24,7 @@ shinyUI(fluidPage(
   mainPanel(
     h1("Flower Transects"),
   tableOutput('tran_table'),
+  plotOutput("plant_elev"),
   plotOutput('phenology'),
   h1("Cameras"),
   tableOutput('cam_table'),

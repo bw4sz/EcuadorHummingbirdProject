@@ -32,6 +32,17 @@ server <- function(input, output, session) {
     print(p)
   },height=350,width=750)
   
+  #plant elevation ranges
+  #screen plants with more than 20 records
+  common_plants<-transects %>% group_by(plant_field_name) %>% summarise(n=n()) %>% filter(n>20)
+  common_totals<-transects %>% filter(!is.na(elevation)) %>% filter(plant_field_name %in% common_plants$plant_field_name)
+  
+  #lowest to highest elevation factor order
+  plant_ord<-common_totals  %>% drop.levels() %>% group_by(plant_field_name) %>% summarize(e=mean(as.numeric(elevation))) %>% arrange(e) %>% .$plant_field_name
+  common_totals$plant_field_name <- factor(common_totals$plant_field_name,levels=plant_ord)
+  plant_elev<-ggplot(common_totals,aes(x=plant_field_name,y=as.numeric(elevation))) + geom_boxplot(aes(fill=site)) + coord_flip() + theme_bw() + labs(x="Elevation(m)",y="Species",fill="Site") 
+  output$plant_elev<-renderPlot(plant_elev)
+  
   #Camera Data
   camera_dat<-read.csv("Cameras.csv")
   
@@ -54,10 +65,13 @@ server <- function(input, output, session) {
   
   net_table$hummingbird<-factor(net_table$hummingbird,levels=hum_ord)
   net_table$plant_field_name<-factor(net_table$plant_field_name,levels = plant_ord)
-  int_plot<-ggplot(net_table,aes(x=plant_field_name,y=hummingbird,fill=n)) + geom_tile() + labs(y="Hummingbird",x="Plant",fill="Observations") + theme(axis.text.x=element_text(angle=-90))
-  output$int_plot<-renderPlot(int_plot)
+  int_plot<-ggplot(net_table,aes(x=plant_field_name,y=hummingbird,fill=n)) + geom_tile() + labs(y="Hummingbird",x="Plant",fill="Observations") + theme_bw() + theme(axis.text.x=element_text(angle=-90)) + scale_fill_continuous(low="blue",high="red")
+  output$int_plot<-renderPlot(int_plot,height=600,width=900)
   
   ##plant map  
+  m <- leaflet(d) %>% addTiles() %>% addMarkers(~long,~lat,popup=~Site)
+  output$mymap <- renderLeaflet(m)
+  
   
   ##Bird map
   

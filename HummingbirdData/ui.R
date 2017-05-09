@@ -1,20 +1,11 @@
-#
-# This is the user-interface definition of a Shiny web application. You can
-# run the application by clicking 'Run App' above.
-#
-# Find out more about building applications with Shiny here:
-# 
-#    http://shiny.rstudio.com/
-#
-
 library(shiny)
 library(leaflet)
 
-# Define UI for application that draws a histogram
+# Define UI for application 
 shinyUI(fluidPage(
   
   # Application title
-  titlePanel("Hummingbird Interactions of the Northwest Ecuador"),
+titlePanel("Hummingbird Interactions of the Northwest Ecuador"),
 
   # Sidebar with a slider input for number of bins 
   leafletOutput("mymap"),
@@ -24,7 +15,12 @@ shinyUI(fluidPage(
   mainPanel(
     h1("Flower Transects"),
   tableOutput('tran_table'),
+  h2("Common Birds and Flowers"),
+  "Birds",
+  plotOutput("hum_elev"),
+  "Flowers",
   plotOutput("plant_elev"),
+  "Flower Phenology",
   plotOutput('phenology'),
   h1("Cameras"),
   tableOutput('cam_table'),

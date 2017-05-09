@@ -166,7 +166,7 @@ plant_transects<-transect_gps %>% filter(!plant_field_name=="") %>% filter(!is.n
 write.csv(hummingbird_transects,"C:/Users/Ben/Dropbox/Ecuador hummingbird project/Public Folder/Data/Cleaned/HummingbirdTransects.csv")
 
 #write to shiny server
-write.csv(hummingbird_transects,"HummingbirdData/HummingbirdTransects.xlsx")
+write.csv(hummingbird_transects,"HummingbirdData/HummingbirdTransects.csv")
 
 #plants
 write.csv(plant_transects,"C:/Users/Ben/Dropbox/Ecuador hummingbird project/Public Folder/Data/Cleaned/PlantTransects.csv")

@@ -28,7 +28,7 @@ server <- function(input, output, session) {
   transects$Month<-factor(transects$Month,levels=month.name)
   phenology<-transects %>% group_by(site,Month,Year) %>% summarize(total_flowers=sum(total_flowers))
   output$phenology<-renderPlot({
-    p<-ggplot(data=phenology,aes(x=Month,y=total_flowers,col=site)) + facet_wrap(~Year) + geom_point() + geom_line(aes(group=site)) + labs(y="Flowers",col="Site")
+    p<-ggplot(data=phenology,aes(x=Month,y=total_flowers,col=site)) + facet_wrap(~Year) + geom_point() + geom_line(aes(group=site)) + labs(y="Flowers",col="Site") + theme_bw()
     print(p)
   },height=350,width=750)
   
@@ -38,7 +38,7 @@ server <- function(input, output, session) {
   common_totals<-transects %>% filter(!is.na(elevation)) %>% filter(plant_field_name %in% common_plants$plant_field_name)
   
   #lowest to highest elevation factor order
-  plant_ord<-common_totals  %>% drop.levels() %>% group_by(plant_field_name) %>% summarize(e=mean(as.numeric(elevation))) %>% arrange(e) %>% .$plant_field_name
+  plant_ord<-common_totals  %>% droplevels() %>% group_by(plant_field_name) %>% summarize(e=mean(as.numeric(elevation))) %>% arrange(e) %>% .$plant_field_name
   common_totals$plant_field_name <- factor(common_totals$plant_field_name,levels=plant_ord)
   plant_elev<-ggplot(common_totals,aes(x=plant_field_name,y=as.numeric(elevation))) + geom_boxplot(aes(fill=site)) + coord_flip() + theme_bw() + labs(x="Elevation(m)",y="Species",fill="Site") 
   output$plant_elev<-renderPlot(plant_elev)
@@ -68,14 +68,27 @@ server <- function(input, output, session) {
   int_plot<-ggplot(net_table,aes(x=plant_field_name,y=hummingbird,fill=n)) + geom_tile() + labs(y="Hummingbird",x="Plant",fill="Observations") + theme_bw() + theme(axis.text.x=element_text(angle=-90)) + scale_fill_continuous(low="blue",high="red")
   output$int_plot<-renderPlot(int_plot,height=600,width=900)
   
+  #Hummingbird elevation
+  #combine both transects and cameras
+  hum_tran<-read.csv("HummingbirdTransects.csv",row.names=1)
+  hum_tran<-hum_tran %>% filter(!is.na(elevation)) %>% select(hummingbird,lon,lat,site,date,elevation)
+  
+  #get from bird data
+  hum_cam<-int_data %>% filter(!is.na(elevation)) %>% select(hummingbird,lon,lat,site,date,elevation)
+  hum<-bind_rows(list(hum_tran,hum_cam))
+
+  #bird elevation range                 
+  hum_ord<-hum  %>% droplevels() %>% group_by(hummingbird) %>% summarize(e=mean(as.numeric(elevation))) %>% arrange(e) %>% .$hummingbird
+  hum$hummingbird <- factor(hum$hummingbird,levels=hum_ord)
+  hum_elev<-ggplot(hum,aes(x=hummingbird,y=as.numeric(elevation))) + geom_boxplot(aes(fill=site)) + coord_flip() + theme_bw() + labs(x="Elevation(m)",y="Species",fill="Site") 
+  output$hum_elev<-renderPlot(hum_elev)
+  
   ##plant map  
   m <- leaflet(d) %>% addTiles() %>% addMarkers(~long,~lat,popup=~Site)
   output$mymap <- renderLeaflet(m)
   
-  
   ##Bird map
   
-  ##Interactions by site
-  
   ## Across sites
+    
 }

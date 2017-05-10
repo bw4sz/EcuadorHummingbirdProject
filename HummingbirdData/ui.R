@@ -24,7 +24,9 @@ titlePanel("Hummingbird Interactions of the Northwest Ecuador"),
   plotOutput('phenology'),
   h1("Cameras"),
   tableOutput('cam_table'),
-  "Observations",
+  "Camera Observations",
   tableOutput('int_table'),
   plotOutput('int_plot')
+  
+  # all site summary
 )))

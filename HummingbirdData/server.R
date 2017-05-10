@@ -14,6 +14,9 @@ server <- function(input, output, session) {
   output$mymap <- renderLeaflet(m)
   
   #Transect Data
+  
+  #TODO put hummingbird transect numbers and elevation information
+  
   transects<-read.csv("PlantTransects.csv",row.names=1)
   
   #How many transects by site
@@ -25,6 +28,8 @@ server <- function(input, output, session) {
   
   #Phenology plots
   #month factor
+  
+  #Facets (or color) by elevation band.
   transects$Month<-factor(transects$Month,levels=month.name)
   phenology<-transects %>% group_by(site,Month,Year) %>% summarize(total_flowers=sum(total_flowers))
   output$phenology<-renderPlot({
@@ -45,6 +50,8 @@ server <- function(input, output, session) {
   
   #Camera Data
   camera_dat<-read.csv("Cameras.csv")
+  
+  #TODO average number of camera days.
   
   ## summary table
   cam_table<-camera_dat %>% group_by(site) %>% summarize(n=n(),plant_species=length(unique(plant_field_name)))

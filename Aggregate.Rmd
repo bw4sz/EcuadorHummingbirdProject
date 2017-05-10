@@ -57,7 +57,7 @@ get_time<-function(x){
     }
 
 #poco de choco string, ask nicole to change her GPS to english abbreviations?
-if(nchar(x)==17){
+if(nchar(x) %in% c(17,18)){
   timet<-strsplit(x," ")[[1]][[2]]
 }
   return(timet)
@@ -76,7 +76,7 @@ get_date<-function(x){
     }
 
 #poco de choco string, ask nicole to change her GPS to english abbreviations?
-  if(nchar(x)==17){
+  if(nchar(x) %in% c(17,18)){
     datet<-NA
   }
   return(datet)
@@ -84,7 +84,7 @@ get_date<-function(x){
 
 wpoints$date_gps<-sapply(wpoints$time,get_date)
 
-#create site id
+#create site id, month, year waypoint combination.
 wpoints$ID<-paste(wpoints$site,wpoints$waypoint,sep="_")
 
 #delete duplicates
@@ -143,7 +143,7 @@ transect_data<-transect_data %>% select(date,Month,Year,site,plant_field_name,to
 ## Combine with gps data
 
 ```{r}
-transect_data$ID<-paste(transect_data$site,transect_data$waypoint,sep="_")
+transect_data$ID<-paste(transect_data$site,transect_data$site$date,transect_data$waypoint,sep="_")
 transect_gps<-transect_data %>% left_join(wpoints,by="ID") %>% select(-time,-waypoint.x,waypoint=waypoint.y,-site.y,site=site.x)
 
 paste(transect_gps %>% filter(is.na(lon)) %>% nrow(.), " transect points missing GPS data")
@@ -209,7 +209,7 @@ camera_dat$Year<-years(strptime(camera_dat$start_date,"%d/%m/%Y"))
 
 ```{r}
 
-camera_dat$ID<-paste(camera_dat$site,camera_dat$waypoint,sep="_")
+camera_dat$ID<-paste(camera_dat$site,camera_dat$ID,camera_dat$waypoint,sep="_")
 camera_gps<-camera_dat %>% left_join(wpoints,by="ID") %>% select(-time,-waypoint.x,waypoint=waypoint.y,site=site.x)
 
 paste(camera_gps %>% filter(is.na(lon)) %>% nrow(.), " camera points missing GPS data")
@@ -253,7 +253,7 @@ int_data<-bind_rows(int_data)
 ## Combine with camera data
 
 ```{r}
-int_data$ID<-paste(int_data$site,int_data$waypoint,sep="_")
+int_data$ID<-paste(int_data$site,int_data$date,int_data$waypoint,sep="_")
 tojoin<-camera_gps %>% select(ID,plant_field_name,lon,lat,elevation)
 int_gps<-int_data %>% left_join(tojoin,by="ID")
 ```

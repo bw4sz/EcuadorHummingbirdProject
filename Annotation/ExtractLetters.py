@@ -9,7 +9,10 @@ import csv
 class Annotate:
     def __init__(self,image,debug=False,size=150,limit=None):    
         print("MeerkatReader object created")    
-
+        self.debug=debug
+        self.size=size
+        self.image=image
+        
         #only import the viewer libraries if needed.
         if debug: 
             import matplotlib.pyplot as plt
@@ -23,7 +26,7 @@ class Annotate:
         
         if self.debug: fig = plt.figure()
                                                             
-        img=cv2.imread(image)
+        img=cv2.imread(self.image)
         display_image=img[self.roi_selected[1]:self.roi_selected[3], self.roi_selected[0]:self.roi_selected[2]]     
         display_image=cv2.cvtColor(display_image,cv2.COLOR_RGB2GRAY)
         

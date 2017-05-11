@@ -9,7 +9,7 @@ if __name__ == "__main__":
     #Get a list of images
     
     #pass each image to annotation class, return a list of letter images
-    ExtractLetters.Annotate(image="C:/Users/Ben/Dropbox/HummingbirdProject/Data/Maquipucuna/foundframes/201702/MQPC2214_20170227_01/4200.jp")
+    mr=ExtractLetters.Annotate(image="C:/Users/Ben/Dropbox/HummingbirdProject/Data/Maquipucuna/foundframes/201702/MQPC2214_20170227_01/4200.jpg")
     
     #Date
     date_letters=mr.getLetters(roi=[600,702,777,759],asset="Date")     

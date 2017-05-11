@@ -78,7 +78,7 @@ def create_model():
   parser = argparse.ArgumentParser()
   # Label count needs to correspond to number of labels in dictionary used
   # during preprocessing.
-  parser.add_argument('--label_count', type=int, default=2)
+  parser.add_argument('--label_count', type=int, default=22)
   parser.add_argument('--dropout', type=float, default=0.5)
   parser.add_argument(
       '--inception_checkpoint_file',

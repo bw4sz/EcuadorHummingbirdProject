@@ -3,8 +3,6 @@ title: HummingbirdData
 account: weinstein
 server: shinyapps.io
 appId: 177348
-bundleId: 821729
+bundleId: 824800
 url: https://weinstein.shinyapps.io/HummingbirdData/
-when: 1494382250.5255
-asMultiple: FALSE
-asStatic: FALSE
+when: 1494527635.72183

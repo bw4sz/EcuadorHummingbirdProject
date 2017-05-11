@@ -3,6 +3,7 @@ library(maptools)
 library(dplyr)
 library(htmltools)
 library(ggplot2)
+library(leaflet)
 
 server <- function(input, output, session) {
   Sys.setlocale('LC_ALL','C') 
@@ -20,7 +21,7 @@ server <- function(input, output, session) {
 
   #How many transects by site
   mostc<-function(x){names(sort(table(x),decreasing=T))[1]}
-  tran_table<-transects %>% group_by(site) %>% summarize(Transects_Performed=length(unique(date)),Species=length(unique(plant_field_name)),total_flowers=sum(total_flowers),Top_Plant=mostc(plant_field_name))
+  tran_table<-transects %>% group_by(site) %>% summarize(Transects_Performed=length(unique(date)),Plant_Species=length(unique(plant_field_name)),Total_Flowers=sum(total_flowers),Top_Plant=mostc(plant_field_name))
   
   #Plot of flower count over time
   output$tran_table<-renderTable(tran_table)
@@ -29,9 +30,9 @@ server <- function(input, output, session) {
   #month factor
   
   transects$Month<-factor(transects$Month,levels=month.name)
-  phenology<-transects %>% group_by(site,Month,Year) %>% summarize(total_flowers=sum(total_flowers))
+  phenology<-transects %>% group_by(site,Month,Year) %>% summarize(total_flowers=sum(total_flowers),ele=mean(elevation))
   output$phenology<-renderPlot({
-    p<-ggplot(data=phenology,aes(x=Month,y=total_flowers,col=site)) + facet_wrap(~Year) + geom_point() + geom_line(aes(group=site)) + labs(y="Flowers",col="Site") + theme_bw()
+    p<-ggplot(data=phenology,aes(x=Month,y=total_flowers,col=ele)) + facet_wrap(~Year) + geom_point(size=4) + geom_line(aes(group=site)) + labs(y="Flowers",col="Site") + theme_bw()
     print(p)
   },height=350,width=750)
   
@@ -57,7 +58,7 @@ server <- function(input, output, session) {
   int_data<-read.csv("Interactions.csv",row.names=1)
   
   #Summary Table
-  int_table<-int_data %>% group_by(site) %>% summarize(Observations=n(),hummingbird_species=length(unique(hummingbird)),plant_species=length(unique(plant_field_name)))
+  int_table<-int_data %>% group_by(site) %>% summarize(Observations=n(),Hummingbird_sp=length(unique(hummingbird)),Plant_sp=length(unique(plant_field_name)))
   output$int_table<-renderTable(int_table)
   
   #interaction table
@@ -69,7 +70,7 @@ server <- function(input, output, session) {
   net_table$hummingbird<-factor(net_table$hummingbird,levels=hum_ord)
   net_table$plant_field_name<-factor(net_table$plant_field_name,levels = plant_ord)
   int_plot<-ggplot(net_table,aes(x=plant_field_name,y=hummingbird,fill=n)) + geom_tile() + labs(y="Hummingbird",x="Plant",fill="Observations") + theme_bw() + theme(axis.text.x=element_text(angle=-90)) + scale_fill_continuous(low="blue",high="red")
-  output$int_plot<-renderPlot(int_plot,height=600,width=900)
+  output$int_plot<-renderPlot(int_plot)
   
   #Hummingbird elevation
   #combine both transects and cameras
@@ -87,11 +88,32 @@ server <- function(input, output, session) {
   output$hum_elev<-renderPlot(hum_elev)
   
   ##plant map  
-  m <- leaflet(d) %>% addTiles() %>% addMarkers(~long,~lat,popup=~Site)
-  output$mymap <- renderLeaflet(m)
   
-  ##Bird map
+  plant_map <- leaflet(d) %>% addTiles() %>% fitBounds(~min(long),~min(lat),~max(long),~max(lat))
   
-  ## Across sites
+  filteredData<-reactive({
     
+    #filter based on selection
+    if(!is.null(input$plant_species)){
+      out<-transects %>% filter(plant_field_name %in% input$plant_species) %>%
+        group_by(site,plant_field_name)  %>% top_n(1)
+      return(out)
+    }
+  })
+  
+  #look for new selections
+  observe({
+    
+    #add points
+    if(!is.null(input$plant_species)){
+      newdata<-filteredData()
+        leafletProxy("plant_map",data=newdata)  %>% clearMarkers() %>%
+          addMarkers(~lon,~lat,popup=~site)
+        
+    }
+    
+  })
+  
+  output$plant_map <- renderLeaflet(plant_map)
+  
 }

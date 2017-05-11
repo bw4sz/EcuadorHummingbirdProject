@@ -27,7 +27,7 @@ gcloud compute instances create cloudml
 #for the moment, ssh instance
 gcloud compute ssh cloudml 
 
-gcloud docker run -it gcr.io/api-project-773889352370/cloudmlengine 
+sudo gcloud docker run -- -i -t gcr.io/api-project-773889352370/cloudmlengine
 
 #run pipeline
 ./StartDocker.sh

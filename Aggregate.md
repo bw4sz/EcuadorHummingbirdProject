@@ -162,6 +162,29 @@ for (x in levels(transect_data$plant_field_name)){
 
 #droplevels
 transect_data<-droplevels(transect_data)
+
+#clean the  birds
+##need to standardize plant species to read from revised plant names
+droplevels$hummingbird<-factor(droplevels$hummingbird)
+```
+
+```
+## Error in droplevels$hummingbird: object of type 'closure' is not subsettable
+```
+
+```r
+hum_taxize<-gnr_resolve(levels(droplevels$hummingbird),best_match_only=T,canonical = TRUE)
+```
+
+```
+## Error in droplevels$hummingbird: object of type 'closure' is not subsettable
+```
+
+```r
+#fix formatted lavels
+for (x in levels(transect_data$hummingbird)){
+  levels(transect_data$hummingbird)[levels(transect_data$hummingbird) %in% x]<-hum_taxize[hum_taxize$submitted_name %in% x,"matched_name2"]  
+}
 ```
 
 ## Combine with gps data
@@ -304,7 +327,7 @@ camera_gps %>% filter(is.na(lon)) %>% group_by(site) %>% summarize(n=n())
 ```
 
 ```
-## # A tibble: 6 × 2
+## # A tibble: 6 <U+00D7> 2
 ##              site     n
 ##             <chr> <int>
 ## 1        Cambugan     5
@@ -380,128 +403,18 @@ isclass<-tax_name(query = levels(int_data$hummingbird), get = "family", db = "nc
 ```
 
 ```
-## 
-## Retrieving data for taxon 'Atlapetes tricolor'
-```
-
-```
-## 
-## Retrieving data for taxon 'Chlorostilbon melanorhynchus'
-```
-
-```
-## 
-## Retrieving data for taxon 'Coeligena lutetiae'
-```
-
-```
-## 
-## Retrieving data for taxon 'Coeligena'
-```
-
-```
-## 
-## Retrieving data for taxon 'Coeligena torquata'
-```
-
-```
-## 
-## Retrieving data for taxon 'Coeligena wilsoni'
-```
-
-```
-## 
-## Retrieving data for taxon 'Doryfera ludovicae'
-```
-
-```
-## 
-## Retrieving data for taxon 'Ensifera ensifera'
-```
-
-```
-## 
-## Retrieving data for taxon 'Eriocnemis luciani'
-```
-
-```
-## 
-## Retrieving data for taxon 'Euphonia xanthogaster'
-```
-
-```
-## 
-## Retrieving data for taxon 'Heliodoxa rubinoides'
-```
-
-```
-## 
-## Retrieving data for taxon 'Henicorhina leucophrys'
-```
-
-```
-## 
-## Retrieving data for taxon 'Lafresnaya lafresnayi'
-```
-
-```
-## 
-## Retrieving data for taxon 'Metallura tyrianthina'
-```
-
-```
-## 
-## Retrieving data for taxon 'Ocreatus underwoodii'
-```
-
-```
-## 
-## Retrieving data for taxon 'Phaethornis'
-```
-
-```
-## 
-## Retrieving data for taxon 'Phaethornis striigularis'
-```
-
-```
-## 
-## Retrieving data for taxon 'Phaethornis syrmatophorus'
-```
-
-```
-## 
-## Retrieving data for taxon 'Phaethornis yaruqui'
-```
-
-```
-## 
-## Retrieving data for taxon 'Puma concolor'
-```
-
-```
-## 
-## Retrieving data for taxon 'Thalurania fannyi'
-```
-
-```
-## 
-## Retrieving data for taxon 'Unidentified'
-```
-
-```
-## 
-## Retrieving data for taxon 'unknown'
-```
-
-```
-## 
-## Retrieving data for taxon 'Urosticte benjamini'
+## Error in value[[3L]](cond): Timeout was reached
 ```
 
 ```r
 hum_keep<-hum_keep[isclass$family %in% "Trochilidae"]
+```
 
+```
+## Error in match(x, table, nomatch = 0L): object 'isclass' not found
+```
+
+```r
 #get higher order taxize
 int_data<-int_data %>% filter(hummingbird %in% hum_keep) %>% droplevels()
 ```
@@ -542,7 +455,7 @@ paste(int_gps %>% filter(is.na(lon)) %>% nrow(.), "records missing gps data")
 ```
 
 ```
-## [1] "166 records missing gps data"
+## [1] "172 records missing gps data"
 ```
 
 ## Write to file

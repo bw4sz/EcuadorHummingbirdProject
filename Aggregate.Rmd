@@ -167,6 +167,17 @@ for (x in levels(transect_data$plant_field_name)){
 
 #droplevels
 transect_data<-droplevels(transect_data)
+
+#clean the  birds
+##need to standardize plant species to read from revised plant names
+droplevels$hummingbird<-factor(droplevels$hummingbird)
+hum_taxize<-gnr_resolve(levels(droplevels$hummingbird),best_match_only=T,canonical = TRUE)
+
+#fix formatted lavels
+for (x in levels(transect_data$hummingbird)){
+  levels(transect_data$hummingbird)[levels(transect_data$hummingbird) %in% x]<-hum_taxize[hum_taxize$submitted_name %in% x,"matched_name2"]  
+}
+
 ```
 
 ## Combine with gps data

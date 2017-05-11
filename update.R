@@ -1,6 +1,8 @@
 #Run all updates
 library(knitr)
 
+setwd("C:/Users/Ben/Documents/EcuadorHummingbirdProject/")
+
 #clean data
 knit('Aggregate.Rmd')
 

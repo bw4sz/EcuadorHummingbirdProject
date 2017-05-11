@@ -45,7 +45,7 @@ server <- function(input, output, session) {
   plant_ord<-common_totals  %>% droplevels() %>% group_by(plant_field_name) %>% summarize(e=mean(as.numeric(elevation))) %>% arrange(e) %>% .$plant_field_name
   common_totals$plant_field_name <- factor(common_totals$plant_field_name,levels=plant_ord)
   plant_elev<-ggplot(common_totals,aes(x=plant_field_name,y=as.numeric(elevation))) + geom_boxplot(aes(fill=site)) + coord_flip() + theme_bw() + labs(x="Elevation(m)",y="Species",fill="Site") 
-  output$plant_elev<-renderPlot(plant_elev)
+  output$plant_elev<-renderPlot(plant_elev,width=900,height=400)
   
   #Camera Data
   camera_dat<-read.csv("Cameras.csv")

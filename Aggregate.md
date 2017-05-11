@@ -5,27 +5,17 @@ date: "May 2, 2017"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-library(maptools)
-library(plotKML)
-library(ggplot2)
-library(taxize)
-library(dplyr)
-library(stringr)
-library(chron)
-library(readxl)
-library(taxize)
 
-basename="C:/Users/Ben/Dropbox/HummingbirdProject/Data/"
-```
 
 #GPS Data
 
-```{r}
+
+```r
 allwaypoints<-list.files(basename,recursive=TRUE,full.name=TRUE,pattern=".gpx")
 ```
 
-```{r}
+
+```r
 #read in waypoints
 wayfiles<-function(x){
     try(k<-readGPX(x,waypoints=TRUE)$waypoints)
@@ -45,7 +35,8 @@ wpoints<-lapply(wpoints,function(x){
 wpoints<-rbind_all(wpoints)
 ```
 
-```{r}
+
+```r
 #Standardize time field
 
 get_time<-function(x){
@@ -67,7 +58,8 @@ if(nchar(x) %in% c(17,18)){
 wpoints$time_gps<-sapply(wpoints$time,get_time)
 ```
 
-```{r}
+
+```r
 #spanish lookup table
 mt<-data.frame(Month=month.abb,Spanish=c("ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"))
 
@@ -100,7 +92,8 @@ wpoints$Camera_ID<-paste(wpoints$site,wpoints$waypoint,sep="_")
 wpoints<-wpoints[!duplicated(wpoints),]
 ```
 
-```{r}
+
+```r
 #write gps points
 write.csv(wpoints,"C:/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProjectCleaned/GPS.csv")
 
@@ -110,7 +103,8 @@ write.csv(wpoints,"HummingbirdData/GPS.csv")
 
 #Transect Data
 
-```{r}
+
+```r
 transect_files<-list.files(basename,recursive=TRUE,pattern="transect_",full.names=T)
 
 #only xlsx files
@@ -135,7 +129,8 @@ transect_data$total_flowers<-as.numeric(transect_data$total_flowers)
 
 ## Cleaning
 
-```{r}
+
+```r
 #Month and year column
 transect_data$Month<-months(strptime(transect_data$date,"%d/%m/%Y"))
 transect_data$Year<-years(strptime(transect_data$date,"%d/%m/%Y"))
@@ -171,19 +166,54 @@ transect_data<-droplevels(transect_data)
 
 ## Combine with gps data
 
-```{r}
+
+```r
 transect_data$Transect_ID<-paste(transect_data$site,transect_data$date,transect_data$waypoint,sep="_")
 transect_gps<-transect_data %>% left_join(wpoints,by="Transect_ID") %>% select(-time,-waypoint.x,waypoint=waypoint.y,-site.y,site=site.x)
 
 paste(missing<-transect_gps %>% filter(is.na(lon)) %>% nrow(.), "transect points missing GPS data")
+```
 
+```
+## [1] "1561 transect points missing GPS data"
+```
+
+```r
 transect_gps %>% filter(is.na(lon)) %>% group_by(site,date) %>% summarize(n=n())
+```
+
+```
+## Source: local data frame [19 x 3]
+## Groups: site [?]
+## 
+##              site       date     n
+##             <chr>      <chr> <int>
+## 1        Cambugan 14/03/2017   118
+## 2        Cambugan 15/02/2017   104
+## 3        Cambugan 16/03/2017    55
+## 4    LasGralarias 16/03/2017    22
+## 5  MashpiCapuchin  12/4/2017     4
+## 6      SantaLucia 17/04/2017    51
+## 7      SantaLucia 19/04/2017    46
+## 8      SantaLucia 20/01/2017   136
+## 9      SantaLucia 20/02/2017    79
+## 10     SantaLucia 22/02/2017    91
+## 11     SantaLucia 22/03/2017    22
+## 12     SantaLucia 24/03/2017    10
+## 13    UnPocoChoco 26/04/2017    36
+## 14     Verdecocha 18/03/2017     1
+## 15     Verdecocha   4/4/2017   201
+## 16      Yanacocha 17/03/2017   141
+## 17      Yanacocha 18/02/2017   185
+## 18      Yanacocha   4/4/2017   174
+## 19           <NA> 19/01/2017    85
 ```
 
 
 ## Divide into plant and hummingbird transects
 
-```{r}
+
+```r
 hummingbird_transects<-transect_gps %>% filter(!hummingbird=="")
 
 #What's up with cambugan, alot of no total flower counts?
@@ -192,7 +222,8 @@ plant_transects<-transect_gps %>% filter(!plant_field_name=="") %>% filter(!is.n
 
 ## Write to file
 
-```{r}
+
+```r
 #plants
 write.csv(hummingbird_transects,"C:/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProjectCleaned/HummingbirdTransects.csv")
 
@@ -208,7 +239,8 @@ write.csv(plant_transects,"HummingbirdData/PlantTransects.csv")
 
 #Camera Data
 
-```{r}
+
+```r
 camera_files<-list.files(basename,recursive=TRUE,pattern="cameras",full.names = T)
 
 #only xlsx files
@@ -227,7 +259,8 @@ camera_dat<-bind_rows(camera_xlsx)
 
 ## Cleaning
 
-```{r}
+
+```r
 #Month and year column
 camera_dat$Month<-months(strptime(camera_dat$start_date,"%d/%m/%Y"))
 camera_dat$Year<-years(strptime(camera_dat$start_date,"%d/%m/%Y"))
@@ -254,19 +287,38 @@ camera_dat<-droplevels(camera_dat)
 
 ## Combine with gps data
 
-```{r}
+
+```r
 camera_dat$Camera_ID<-paste(camera_dat$site,camera_dat$waypoint,sep="_")
 camera_gps<-camera_dat %>% left_join(wpoints,by="Camera_ID") %>% select(-time,-waypoint.x,waypoint=waypoint.y,site=site.x)
 
 paste(camera_gps %>% filter(is.na(lon)) %>% nrow(.), "camera points missing GPS data")
+```
 
+```
+## [1] "16 camera points missing GPS data"
+```
+
+```r
 camera_gps %>% filter(is.na(lon)) %>% group_by(site) %>% summarize(n=n())
+```
 
+```
+## # A tibble: 6 × 2
+##              site     n
+##             <chr> <int>
+## 1        Cambugan     5
+## 2    LasGralarias     1
+## 3  MashpiCapuchin     1
+## 4 SantaLuciaLower     1
+## 5      Verdecocha     4
+## 6       Yanacocha     4
 ```
 
 ## Write to file
 
-```{r}
+
+```r
 #write to dropbox
 write.csv(camera_dat,"C:/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProjectCleaned/Cameras.csv")
 
@@ -276,7 +328,8 @@ write.csv(camera_dat,"HummingbirdData/Cameras.csv")
 
 #Interaction Data
 
-```{r}
+
+```r
 int_files<-list.files(basename,recursive=TRUE,pattern="observations",full.names = T)
 
 #only xlsx files
@@ -295,7 +348,8 @@ int_data<-bind_rows(int_data)
 
 ## Cleaning
 
-```{r}
+
+```r
 ##need to standardize plant species to read from revised plant names
 int_data$hummingbird<-factor(int_data$hummingbird)
 int_taxize<-gnr_resolve(levels(int_data$hummingbird),best_match_only=T,canonical = TRUE)
@@ -307,11 +361,145 @@ hum_keep<-int_taxize$submitted_name[sapply(strsplit(int_taxize$matched_name2," "
 for (x in levels(int_data$hummingbird)){
   levels(int_data$hummingbird)[levels(int_data$hummingbird) %in% x]<-int_taxize[int_taxize$submitted_name %in% x,"matched_name2"]  
 }
+```
 
+```
+## Error in levels(int_data$hummingbird)[levels(int_data$hummingbird) %in% : replacement has length zero
+```
+
+```r
 int_data<-droplevels(int_data)
 
 #only hummingbirds
 isclass<-tax_name(query = levels(int_data$hummingbird), get = "family", db = "ncbi")
+```
+
+```
+## 
+## Retrieving data for taxon 'Aglaiocercus coelestis'
+```
+
+```
+## 
+## Retrieving data for taxon 'Atlapetes tricolor'
+```
+
+```
+## 
+## Retrieving data for taxon 'Chlorostilbon melanorhynchus'
+```
+
+```
+## 
+## Retrieving data for taxon 'Coeligena lutetiae'
+```
+
+```
+## 
+## Retrieving data for taxon 'Coeligena'
+```
+
+```
+## 
+## Retrieving data for taxon 'Coeligena torquata'
+```
+
+```
+## 
+## Retrieving data for taxon 'Coeligena wilsoni'
+```
+
+```
+## 
+## Retrieving data for taxon 'Doryfera ludovicae'
+```
+
+```
+## 
+## Retrieving data for taxon 'Ensifera ensifera'
+```
+
+```
+## 
+## Retrieving data for taxon 'Eriocnemis luciani'
+```
+
+```
+## 
+## Retrieving data for taxon 'Euphonia xanthogaster'
+```
+
+```
+## 
+## Retrieving data for taxon 'Heliodoxa rubinoides'
+```
+
+```
+## 
+## Retrieving data for taxon 'Henicorhina leucophrys'
+```
+
+```
+## 
+## Retrieving data for taxon 'Lafresnaya lafresnayi'
+```
+
+```
+## 
+## Retrieving data for taxon 'Metallura tyrianthina'
+```
+
+```
+## 
+## Retrieving data for taxon 'Ocreatus underwoodii'
+```
+
+```
+## 
+## Retrieving data for taxon 'Phaethornis'
+```
+
+```
+## 
+## Retrieving data for taxon 'Phaethornis striigularis'
+```
+
+```
+## 
+## Retrieving data for taxon 'Phaethornis syrmatophorus'
+```
+
+```
+## 
+## Retrieving data for taxon 'Phaethornis yaruqui'
+```
+
+```
+## 
+## Retrieving data for taxon 'Puma concolor'
+```
+
+```
+## 
+## Retrieving data for taxon 'Thalurania fannyi'
+```
+
+```
+## 
+## Retrieving data for taxon 'Unidentified'
+```
+
+```
+## 
+## Retrieving data for taxon 'unknown'
+```
+
+```
+## 
+## Retrieving data for taxon 'Urosticte benjamini'
+```
+
+```r
 hum_keep<-hum_keep[isclass$family %in% "Trochilidae"]
 
 #get higher order taxize
@@ -320,13 +508,15 @@ int_data<-int_data %>% filter(hummingbird %in% hum_keep) %>% droplevels()
 
 ## Combine with camera data
 
-```{r}
+
+```r
 int_data$Camera_ID<-paste(int_data$site,int_data$waypoint,sep="_")
 tojoin<-camera_gps %>% select(Camera_ID,plant_field_name,lon,lat,elevation)
 int_gps<-int_data %>% left_join(tojoin,by="Camera_ID")
 ```
 
-```{r}
+
+```r
 #interactions within 20 seconds are condensced to the same event
 int_gps$timestamp<-as.POSIXct(paste(int_gps$date,int_gps$time),format=" %d/%m/%Y %H:%M:%S",tz="EST")
 
@@ -351,9 +541,14 @@ int_gps<-int_gps %>% filter(!is.na(hummingbird))
 paste(int_gps %>% filter(is.na(lon)) %>% nrow(.), "records missing gps data")
 ```
 
+```
+## [1] "166 records missing gps data"
+```
+
 ## Write to file
 
-```{r}
+
+```r
 #write to dropbox
 write.csv(int_gps,"C:/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProjectCleaned/Interactions.csv")
 

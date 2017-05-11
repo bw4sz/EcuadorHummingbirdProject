@@ -10,18 +10,17 @@ server <- function(input, output, session) {
   #Site Map
   d<-read.csv("Sites.csv",row.names=1)
   d$Site<-rownames(d)
-  m <- leaflet(d) %>% addTiles() %>% addMarkers(~long,~lat,popup=~Site)
+  m <- leaflet(d) %>% addTiles() %>% addMarkers(~long,~lat,popup=~paste(Site,paste(min_elev,max_elev,sep=" - ")))
   output$mymap <- renderLeaflet(m)
   
   #Transect Data
   
   #TODO put hummingbird transect numbers and elevation information
-  
   transects<-read.csv("PlantTransects.csv",row.names=1)
-  
+
   #How many transects by site
   mostc<-function(x){names(sort(table(x),decreasing=T))[1]}
-  tran_table<-transects %>% group_by(site) %>% summarize(N=length(unique(date)),Species=length(unique(plant_field_name)),total_flowers=sum(total_flowers),Top_Plant=mostc(plant_field_name))
+  tran_table<-transects %>% group_by(site) %>% summarize(Transects_Performed=length(unique(date)),Species=length(unique(plant_field_name)),total_flowers=sum(total_flowers),Top_Plant=mostc(plant_field_name))
   
   #Plot of flower count over time
   output$tran_table<-renderTable(tran_table)
@@ -29,7 +28,6 @@ server <- function(input, output, session) {
   #Phenology plots
   #month factor
   
-  #Facets (or color) by elevation band.
   transects$Month<-factor(transects$Month,levels=month.name)
   phenology<-transects %>% group_by(site,Month,Year) %>% summarize(total_flowers=sum(total_flowers))
   output$phenology<-renderPlot({
@@ -51,21 +49,19 @@ server <- function(input, output, session) {
   #Camera Data
   camera_dat<-read.csv("Cameras.csv")
   
-  #TODO average number of camera days.
-  
   ## summary table
   cam_table<-camera_dat %>% group_by(site) %>% summarize(n=n(),plant_species=length(unique(plant_field_name)))
   output$cam_table<-renderTable(cam_table)
   
   #Interaction Data
-  int_data<-read.csv("Interactions.csv")
+  int_data<-read.csv("Interactions.csv",row.names=1)
   
   #Summary Table
   int_table<-int_data %>% group_by(site) %>% summarize(Observations=n(),hummingbird_species=length(unique(hummingbird)),plant_species=length(unique(plant_field_name)))
   output$int_table<-renderTable(int_table)
   
   #interaction table
-  net_table<-int_data %>% group_by(plant_field_name,hummingbird) %>% summarize(n=n()) %>% arrange()
+  net_table<-int_data %>% group_by(plant_field_name,hummingbird) %>% filter(!is.na(plant_field_name)) %>% summarize(n=n()) %>% arrange()
   net_table<-droplevels(net_table)
   hum_ord<-net_table %>% group_by(hummingbird) %>% summarize(n=n()) %>% arrange(n) %>% .$hummingbird
   plant_ord<-net_table %>% group_by(plant_field_name) %>% summarize(n=n()) %>% arrange(desc(n)) %>% .$plant_field_name

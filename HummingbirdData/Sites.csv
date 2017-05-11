@@ -1,12 +1,13 @@
-Site name,lat,long,size of reserve,min elev,max elev
-Mashpi lodge,0.16378,-78.8735,700,,
-Mashpi road,0.16378,-78.8735,700,900,1200
-Un Poco del Chocó,0.05233,-78.84095,15,900,1200
-Maqui,0.125057,-78.631489,6000,1530,1750
-Santa Lucia lower,0.11719,-78.61024,730,1700,2000
-Sachatamia,-0.02538,-78.76083,120,1655,1791
-Cambugan upper,0.1905,-78.48211,,2800,3000
-Cambugan lower,0.186596,-78.471538,,1700,3100
-Las Grallarias (lower),-0.01071,-78.73087,425,1873,2072
-Verdecocha,-0.11817,-78.59747,1000,3200,3300
-Yanacocha,-0.12108,-78.59028,700,3400,3500
+Site name,lat,long,min_elev,max_elev,bin
+Mashpi_Capuchin,0.16378,-78.8735,,,
+Mashpi_Laguna,0.16378,-78.8735,900m,1200m,
+UnPocoChoco,0.05233,-78.84095,900m,1200m,
+Maquipucuna,0.125057,-78.631489,1530m,1750m,
+SantaLuciaUpper,0.11719,-78.61024,2300m,2500m,1500-2200
+SantaLuciaLower,0.11719,-78.61024,1700m,2000m,2200-2900
+Sachatamia,-0.02538,-78.76083,1655m,1791m,
+Cambugan upper,0.1905,-78.48211,2800m,3000m,
+Cambugan ,0.186596,-78.471538,1700m,3100m,
+Las Gralarias,-0.01071,-78.73087,1873m,2072m,
+Verdecocha,-0.11817,-78.59747,3200m,3300m,
+Yanacocha,-0.12108,-78.59028,3400m,3500m,

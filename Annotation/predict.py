@@ -14,6 +14,7 @@ class tensorflow_model:
         
         #frames to be analyzed
         tfimages=[]     
+        
         #names for those frames
         self.image_name=[]
         
@@ -39,47 +40,23 @@ class tensorflow_model:
                 self.image_name.append(numpy_name)
 
         # Loads label file, strips off carriage return
-        self.label_lines = [line.rstrip() for line in tf.gfile.GFile("tensorflow/dict.txt")]
+        self.label_lines = [line.rstrip() for line in tf.gfile.GFile("dict.txt")]
         
         # Feed the image_data as input to the graph and get first prediction
         softmax_tensor = sess.graph.get_tensor_by_name('final_ops/softmax:0')
-        predictions = sess.run(softmax_tensor, {'Placeholder:0': tfimages})
+        prediction = sess.run(softmax_tensor, {'Placeholder:0': tfimages})
         
-        #output results
-        self.results_frame={}
+        # Sort to show labels of first prediction in order of confidence
+        top_k = prediction.argsort()[-len(prediction):][::-1]    
         
-        for x in range(0,len(predictions)):
-            # Sort to show labels of first prediction in order of confidence
-            top_k = predictions[x].argsort()[-len(predictions[x]):][::-1]    
-            
-            for node_id in top_k:
-                human_string = self.label_lines[node_id]
-                score = predictions[x][node_id]
-                print('%s (score = %.4f)' % (human_string, score))
-            self.results_frame[self.image_name[x]]=self.label_lines[top_k[0]]
-        
-        for x in self.results_frame.items():
-            print(x)
-            
-        return(self.results_frame)
-    def show(self,wait_time):
-        
-        font = cv2.FONT_HERSHEY_SIMPLEX        
-        for x in self.image_name:
-            image=cv2.imread(x)
-            annotation=self.results_frame[x]
-            cv2.putText(image,annotation,(10,20), font, 0.75,(255,255,255),1,cv2.LINE_AA)            
-            cv2.imshow("Annotation", image)
-            cv2.waitKey(wait_time)
-
-print(__name__)
-        
-if __name__ == "__main__":
-    sess=tf.Session()
-    tf.saved_model.loader.load(sess,[tf.saved_model.tag_constants.SERVING], "C:/Users/Ben/Dropbox/GoogleCloud/hummingbird_model/")    
-    tensorflow_instance=tensorflow_model()
-    photos_run=glob.glob("C:/Users/Ben/Dropbox/Thesis/Maquipucuna_SantaLucia/FlowerPhotos/*.jpg")
+        for node_id in top_k:
+            human_string = self.label_lines[node_id]
+            score = prediction[node_id]
+            print('%s (score = %.4f)' % (human_string, score))
+        self.pred=self.label_lines[top_k[0]]            
     
-    for x in photos_run:
-        pred=tensorflow_instance.predict(read_from="file",sess=sess,imagedir=x)
-        tensorflow_instance.show(wait_time=0)
+    def show(self,wait_time):
+        font = cv2.FONT_HERSHEY_SIMPLEX        
+        cv2.putText(image_array,self.pred,(10,20), font, 0.75,(255,255,255),1,cv2.LINE_AA)            
+        cv2.imshow("Annotation", image_array)
+        cv2.waitKey(wait_time)

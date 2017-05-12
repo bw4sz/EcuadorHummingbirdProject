@@ -45,6 +45,6 @@ class tensorflow_model:
     
     def show(self,wait_time):
         font = cv2.FONT_HERSHEY_SIMPLEX        
-        cv2.putText(self.image_array,self.pred,(10,20), font, 0.75,(0,0,255),1,cv2.LINE_AA)            
+        cv2.putText(self.image_array,self.pred,(10,20), font, 0.75,(255,255,0),1,cv2.LINE_AA)            
         cv2.imshow("Annotation", self.image_array)
         cv2.waitKey(wait_time)

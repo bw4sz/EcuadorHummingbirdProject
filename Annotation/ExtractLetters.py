@@ -7,7 +7,7 @@ import os
 import csv
 
 class Annotate:
-    def __init__(self,image,debug=False,size=150,limit=None):    
+    def __init__(self,image,debug=False,size=200,limit=None):    
         print("MeerkatReader object created")    
         self.debug=debug
         self.size=size
@@ -92,7 +92,7 @@ class Annotate:
             if self.debug: view(display_image)            
                             
             self.letters.append(letter)
-            return(self.letters)
+        return(self.letters)
 
 #Helper functions
 #debug viewer function

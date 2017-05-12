@@ -25,9 +25,11 @@ if __name__ == "__main__":
     tf.saved_model.loader.load(sess,[tf.saved_model.tag_constants.SERVING], "C:/Users/Ben/Dropbox/GoogleCloud/Annotation_model/")    
     tensorflow_instance=predict.tensorflow_model()
 
+    date_pred=[]
     for x in date_letters:
-        pred=tensorflow_instance.predict(sess=sess,image_array=x)
+        date_pred.append(tensorflow_instance.predict(sess=sess,image_array=x))
         tensorflow_instance.show(wait_time=0)
+    print("Predicted date: " + "".join(date_pred))
     
     #Time
     time_letters=mr.getLetters(roi=[777,701,919,750],asset="Time") 

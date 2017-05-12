@@ -302,6 +302,9 @@ int_data<-lapply(int_files,function(x){
 })
 
 int_data<-bind_rows(int_data)
+
+#Set date from video file
+str(int_data$folder)
 ```
 
 ## Cleaning
@@ -314,6 +317,8 @@ int_taxize<-gnr_resolve(levels(int_data$hummingbird),best_match_only=T,canonical
 #only keep species with matched double names
 hum_keep<-int_taxize$submitted_name[sapply(strsplit(int_taxize$matched_name2," "),length)==2]
 
+int_data<-int_data %>% filter(hummingbird %in% hum_keep) %>% droplevels()
+
 #for formatted lavels
 for (x in levels(int_data$hummingbird)){
   levels(int_data$hummingbird)[levels(int_data$hummingbird) %in% x]<-int_taxize[int_taxize$submitted_name %in% x,"matched_name2"]  
@@ -323,10 +328,9 @@ int_data<-droplevels(int_data)
 
 #only hummingbirds
 isclass<-tax_name(query = levels(int_data$hummingbird), get = "family", db = "ncbi")
-hum_keep<-hum_keep[isclass$family %in% "Trochilidae"]
+troch_keep<-isclass %>% filter(family =="Trochilidae") %>% .$query
 
-#get higher order taxize
-int_data<-int_data %>% filter(hummingbird %in% hum_keep) %>% droplevels()
+int_data<-int_data %>% filter(hummingbird %in% troch_keep) %>% droplevels()
 ```
 
 ## Combine with camera data

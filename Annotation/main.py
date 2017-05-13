@@ -4,18 +4,25 @@ import ExtractLetters
 import predict
 from openpyxl import load_workbook
 import glob
+import re
 
 if __name__ == "__main__":
-    
-    glob.glob("C:/Users/Ben/Dropbox/HummingbirdProject/Data/*/Observations_*.xlsx")
-    
-    ##find which images need to be annotated
-    wb = load_workbook(filename = 'C:/Users/Ben/Dropbox/HummingbirdProject/Data/Maquipucuna/observations_maquipucuna.xlsx')
-    
-    #f = wb[0]
-    #print(sheet_ranges['Date'].value)        
 
-    #Get a list of images
+    #date images to be processed
+    date_images=[]
+    
+    folders=glob.glob("C:/Users/Ben/Dropbox/HummingbirdProject/Data/*/Observations_*.xlsx")
+    for folder in folders:        
+        ##find which images need to be annotated
+        wb = load_workbook(filename = folder)
+        f=wb.active
+        
+        #which date need to be done
+        for row in f.rows:
+            if(row[2].value==None):
+                #create filepath
+                image_path=os.path.split(folder)[0]+str(row[0].value)+str(row[1].value)
+                date_images.append(image_path)    
 
     #Create tensorflow model
     sess=tf.Session()
@@ -34,6 +41,7 @@ if __name__ == "__main__":
         
     #Time
     time_pred=[]
+    
     #Hour
     hour_letters=mr.getLetters(roi=[777,702,819,750]) 
     for x in hour_letters:

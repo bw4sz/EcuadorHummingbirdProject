@@ -5,17 +5,15 @@ import glob
 from imutils import contours
 import os
 import csv
+#import matplotlib.pyplot as plt                
 
 class Annotate:
-    def __init__(self,image,debug=False,size=150,limit=None):    
+    def __init__(self,image,debug=False,size=300,limit=None):    
         print("MeerkatReader object created")    
         self.debug=debug
         self.size=size
         self.image=image
         
-        #only import the viewer libraries if needed.
-        if debug: 
-            import matplotlib.pyplot as plt                
     def getLetters(self,roi):        
 
         #container for parsed letter images

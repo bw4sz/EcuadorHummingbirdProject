@@ -7,7 +7,7 @@ import os
 import csv
 
 class Annotate:
-    def __init__(self,image,debug=False,size=200,limit=None):    
+    def __init__(self,image,debug=False,size=150,limit=None):    
         print("MeerkatReader object created")    
         self.debug=debug
         self.size=size
@@ -15,19 +15,16 @@ class Annotate:
         
         #only import the viewer libraries if needed.
         if debug: 
-            import matplotlib.pyplot as plt
-        
-        #container for parsed letter images
-        self.letters=[]
-        
-    def getLetters(self,roi,asset):        
+            import matplotlib.pyplot as plt                
+    def getLetters(self,roi):        
 
-        self.roi_selected=roi
+        #container for parsed letter images
+        letters=[]
         
         if self.debug: fig = plt.figure()
                                                             
         img=cv2.imread(self.image)
-        display_image=img[self.roi_selected[1]:self.roi_selected[3], self.roi_selected[0]:self.roi_selected[2]]     
+        display_image=img[roi[1]:roi[3], roi[0]:roi[2]]     
         display_image=cv2.cvtColor(display_image,cv2.COLOR_RGB2GRAY)
         
         if self.debug: view(display_image)
@@ -38,7 +35,7 @@ class Annotate:
         if self.debug: view(display_image)
     
         #threshold
-        ret,display_image=cv2.threshold(display_image,247,255,cv2.THRESH_BINARY)
+        ret,display_image=cv2.threshold(display_image,245,255,cv2.THRESH_BINARY)
         
         if self.debug: view(display_image)
                     
@@ -91,8 +88,8 @@ class Annotate:
             
             if self.debug: view(display_image)            
                             
-            self.letters.append(letter)
-        return(self.letters)
+            letters.append(letter)
+        return(letters)
 
 #Helper functions
 #debug viewer function

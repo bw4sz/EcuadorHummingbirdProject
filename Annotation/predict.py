@@ -35,8 +35,9 @@ class tensorflow_model:
         for node_id in top_k:
             human_string = self.label_lines[node_id]
             score = prediction[0][node_id]
-            print('%s (score = %.4f)' % (human_string, score))
+            #print('%s (score = %.3f)' % (human_string, score))
         self.pred=self.label_lines[top_k[-1]]
+        print("Prediction is " + self.pred)
         return(self.pred)
     
     def show(self,wait_time):

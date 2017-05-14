@@ -1,7 +1,7 @@
 library(stringr)
-a<-list.dirs("C:/Users/Ben/Dropbox/Ecuador hummingbird project/Public Folder/data/santaluciaupper/foundframes/",recursive = F)
+a<-list.dirs("C:/Users/Ben/Dropbox/HummingbirdProject/Data/UnPocoChoco/foundframes/",recursive = F)
 
-for (i in a){
+for (i in a[-1]){
   subi<-list.dirs(i)
   basename<-str_match(subi[-1],"\\w+$")
   #reformat basename
@@ -10,7 +10,7 @@ for (i in a){
     camid<-str_split(x,"_")[[1]][1]
     olddate<-str_split(x,"_")[[1]][2]
     oldnum<-str_split(x,"_")[[1]][3]
-    newdate<-format(strptime(olddate,"%Y%m%d"),"%y%m%d")
+    newdate<-format(strptime(olddate,"%y%m%d"),"%y%m%d")
     if(oldnum=="01"){
       newname<-paste(newdate,"AA",sep="")
     }
@@ -19,6 +19,9 @@ for (i in a){
     }
     if(oldnum=="03"){
       newname<-paste(newdate,"AC",sep="")
+    }
+    if(oldnum=="04"){
+      newname<-paste(newdate,"AD",sep="")
     }
     
     #create directory

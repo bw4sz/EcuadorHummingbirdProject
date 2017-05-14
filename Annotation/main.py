@@ -5,7 +5,7 @@ import predict
 from openpyxl import load_workbook
 import glob
 import os
-
+import csv
 if __name__ == "__main__":
 
     #date images to be processed
@@ -33,81 +33,61 @@ if __name__ == "__main__":
     lookup["Zero"]="0"
     lookup["Forward_slash"]="/"
     lookup[":"]=":"
-    
-    
-    folders=glob.glob("C:/Users/Ben/Dropbox/HummingbirdProject/Data/*/Observations_*.xlsx")
-    for folder in folders:        
-        ##find which images need to be annotated
-        wb = load_workbook(filename = folder)
-        f=wb.active
         
-        #which date need to be done
-        for row in f.rows:
+    image_annotations={}
+    
+    images=glob.glob("C:/Users/Ben/Dropbox/HummingbirdProject/Data/**/foundframes/**/**.jpg",recursive=True)
+    for image_path in images:        
             
-            #Annotate date?
-            if(row[2].value==None):
-                
-                #create filepath
-                image_path=os.path.split(folder)[0]+"/foundframes/"+str(row[0].value)+str(row[1].value)
-                
-                #view image
-                view_image=cv2.imread(image_path)
-                if not view_image:
-                    break
-                cv2.imshow("image",view_image)
-                cv2.waitKey(0)
-                
-                #extract letters
-                date_letters=ExtractLetters.getLetters(image=image_path,roi=[600,702,777,759])     
-            
-                date_pred=[]
-                for x in date_letters:
-                    date_pred.append(tensorflow_instance.predict(sess=sess,image_array=x))
-            
-                #lookup numeric value
-                date_number=[]
-                for x in date_pred:
-                    date_number.append(lookup[x])
-                print("Predicted date: " + "".join(date_number))
+            #extract letters
+            date_letters=ExtractLetters.getLetters(image=image_path,roi=[600,702,777,759])     
+        
+            date_pred=[]
+            for x in date_letters:
+                date_pred.append(tensorflow_instance.predict(sess=sess,image_array=x))
+        
+            #lookup numeric value
+            date_number=[]
+            for x in date_pred:
+                date_number.append(lookup[x])
+            print("Predicted date: " + "".join(date_number))
                 
             #Annotate time?
-            if(row[3].value==None):
-                image_path=os.path.split(folder)[0]+"/foundframes/"+str(row[0].value)+str(row[1].value)
-                
-                view_image=cv2.imread(image_path)
-                if not view_image:
-                    break
-                cv2.imshow("image",view_image)
-                cv2.waitKey(0)
-                
-                #Time
-                time_pred=[]
-                
-                #Hour
-                hour_letters=ExtractLetters.getLetters(image=image_path,roi=[777,702,821,750]) 
-                for x in hour_letters:
-                    time_pred.append(tensorflow_instance.predict(sess=sess,image_array=x))
+            #Time
+            time_pred=[]
+             
+             #Hour
+            hour_letters=ExtractLetters.getLetters(image=image_path,roi=[777,702,821,750]) 
+            for x in hour_letters:
+                time_pred.append(tensorflow_instance.predict(sess=sess,image_array=x))
+         
+             #colon between hour and minute
+            time_pred.append(":")
+             
+             #Minute
+            minute_letters=ExtractLetters.getLetters(image=image_path,roi=[829,702,868,750]) 
+            for x in minute_letters:
+                time_pred.append(tensorflow_instance.predict(sess=sess,image_array=x))
+         
+             #colon between minute and second
+            time_pred.append(":")
+            #Second
+            second_letters=ExtractLetters.getLetters(image=image_path,roi=[876,702,915,750]) 
+            for x in second_letters:
+                time_pred.append(tensorflow_instance.predict(sess=sess,image_array=x))
+             
+             #lookup numeric value
+            time_number=[]    
+            for x in time_pred:
+                time_number.append(lookup[x])
+             
+            print("Predicted time is " + "".join(time_number))
+            #view image
+            image=cv2.imread(image_path)
+            cv2.namedWindow("image",cv2.WINDOW_NORMAL)                 
+            cv2.imshow("image",image)
+            cv2.waitKey(0)
             
-                #colon between hour and minute
-                time_pred.append(":")
-                
-                #Minute
-                minute_letters=ExtractLetters.getLetters(image=image_path,roi=[829,702,868,750]) 
-                for x in minute_letters:
-                    time_pred.append(tensorflow_instance.predict(sess=sess,image_array=x))
-            
-                #colon between minute and second
-                time_pred.append(":")
-                
-                #Second
-                second_letters=ExtractLetters.getLetters(image_path,roi=[876,702,915,750]) 
-                for x in second_letters:
-                    time_pred.append(tensorflow_instance.predict(sess=sess,image_array=x))
-                
-                #lookup numeric value
-                time_number=[]    
-                for x in time_pred:
-                    time_number.append(lookup[x])
-                
-                print("Predicted time is " + "".join(time_number))
+            #write annotations to dictionary
+            image_annotations[image_path]=["".join(date_number),"".join(time_number)]
     

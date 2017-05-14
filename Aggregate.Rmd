@@ -113,15 +113,24 @@ write.csv(wpoints,"HummingbirdData/GPS.csv")
 ```{r}
 transect_files<-list.files(basename,recursive=TRUE,pattern="transect_",full.names=T)
 
-#only xlsx files
 transect_files<-transect_files[!str_detect(transect_files,"~")]
 
 transect_xlsx<-lapply(transect_files,function(x){
-  y<-read_xlsx(x)
   
-  #turn waypoints to character for the moment
-  y$waypoint<-as.character(y$waypoint)
-  y$total_flowers<-as.character(y$total_flowers)
+  if(str_detect(x,".xlsx")){
+    y<-read_xlsx(x)
+    
+    #turn waypoints to character for the moment
+    y$waypoint<-as.character(y$waypoint)
+    y$total_flowers<-as.character(y$total_flowers)
+  }
+  if(str_detect(x,".csv")){
+    y<-read.csv(x)
+    
+    #turn waypoints to character for the moment
+    y$waypoint<-as.character(y$waypoint)
+    y$total_flowers<-as.character(y$total_flowers)
+  }
   
   return(y)
 })
@@ -222,15 +231,24 @@ write.csv(plant_transects,"HummingbirdData/PlantTransects.csv")
 ```{r}
 camera_files<-list.files(basename,recursive=TRUE,pattern="cameras",full.names = T)
 
-#only xlsx files
-camera_files<-camera_files[str_detect(camera_files,".xlsx")]
-
 camera_xlsx<-lapply(camera_files,function(x){
-  j<-read_xlsx(x)
-  j$waypoint<-as.character(j$waypoint)
-  j$card_id<-as.character(j$card_id)
-  j$start_time<-as.character(j$start_time)
-  return(j)
+  
+  if(str_detect(x,".xlsx")){
+    j<-read_xlsx(x)
+    j$waypoint<-as.character(j$waypoint)
+    j$card_id<-as.character(j$card_id)
+    j$start_time<-as.character(j$start_time)
+    return(j)
+  }
+  
+  if(str_detect(x,".csv")){
+    j<-read.csv(x)
+    j$waypoint<-as.character(j$waypoint)
+    j$card_id<-as.character(j$card_id)
+    j$start_time<-as.character(j$start_time)
+    return(j)
+  }
+  
 })
 
 camera_dat<-bind_rows(camera_xlsx)
@@ -290,15 +308,22 @@ write.csv(camera_dat,"HummingbirdData/Cameras.csv")
 ```{r}
 int_files<-list.files(basename,recursive=TRUE,pattern="observations",full.names = T)
 
-#only xlsx files
-int_files<-int_files[str_detect(int_files,".xlsx")]
-
 int_data<-lapply(int_files,function(x){
-  j<-read_xlsx(x)
-  try(j$site<-str_match(x,"(\\w+)/observations")[2],silent=T)
-  j$time<-as.character(j$time)
-  j$filename<-as.character(j$filename)
-  return(j)
+  if(str_detect(x,".xlsx")){
+    j<-read_xlsx(x)
+    try(j$site<-str_match(x,"(\\w+)/observations")[2],silent=T)
+    j$time<-as.character(j$time)
+    j$filename<-as.character(j$filename)
+    return(j)
+  }
+  if(str_detect(x,".csv")){
+    j<-read.csv(x)
+    try(j$site<-str_match(x,"(\\w+)/observations")[2],silent=T)
+    j$time<-as.character(j$time)
+    j$filename<-as.character(j$filename)
+    return(j)
+  }
+  
 })
 
 int_data<-bind_rows(int_data)

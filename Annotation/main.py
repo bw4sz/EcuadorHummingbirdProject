@@ -48,14 +48,17 @@ if __name__ == "__main__":
             if(row[2].value==None):
                 
                 #create filepath
-                image_path=os.path.split(folder)[0]+str(row[0].value)+str(row[1].value)
+                image_path=os.path.split(folder)[0]+"/foundframes/"+str(row[0].value)+str(row[1].value)
                 
                 #view image
-                cv2.imshow("image",cv2.imread(image_path))
+                view_image=cv2.imread(image_path)
+                if not view_image:
+                    break
+                cv2.imshow("image",view_image)
                 cv2.waitKey(0)
                 
                 #extract letters
-                date_letters=mr.getLetters(image=image_path,roi=[600,702,777,759])     
+                date_letters=ExtractLetters.getLetters(image=image_path,roi=[600,702,777,759])     
             
                 date_pred=[]
                 for x in date_letters:
@@ -69,12 +72,19 @@ if __name__ == "__main__":
                 
             #Annotate time?
             if(row[3].value==None):
-                image_path=os.path.split(folder)[0]+str(row[0].value)+str(row[1].value)
+                image_path=os.path.split(folder)[0]+"/foundframes/"+str(row[0].value)+str(row[1].value)
+                
+                view_image=cv2.imread(image_path)
+                if not view_image:
+                    break
+                cv2.imshow("image",view_image)
+                cv2.waitKey(0)
+                
                 #Time
                 time_pred=[]
                 
                 #Hour
-                hour_letters=mr.getLetters(roi=[777,702,821,750]) 
+                hour_letters=ExtractLetters.getLetters(image=image_path,roi=[777,702,821,750]) 
                 for x in hour_letters:
                     time_pred.append(tensorflow_instance.predict(sess=sess,image_array=x))
             
@@ -82,7 +92,7 @@ if __name__ == "__main__":
                 time_pred.append(":")
                 
                 #Minute
-                minute_letters=mr.getLetters(roi=[829,702,868,750]) 
+                minute_letters=ExtractLetters.getLetters(image=image_path,roi=[829,702,868,750]) 
                 for x in minute_letters:
                     time_pred.append(tensorflow_instance.predict(sess=sess,image_array=x))
             
@@ -90,7 +100,7 @@ if __name__ == "__main__":
                 time_pred.append(":")
                 
                 #Second
-                second_letters=mr.getLetters(roi=[876,702,915,750]) 
+                second_letters=ExtractLetters.getLetters(image_path,roi=[876,702,915,750]) 
                 for x in second_letters:
                     time_pred.append(tensorflow_instance.predict(sess=sess,image_array=x))
                 

@@ -7,7 +7,7 @@ import os
 import csv
 #import matplotlib.pyplot as plt                
         
-def getLetters(roi,image,debug=False,size=200,limit=None):        
+def getLetters(roi,image,debug=False,size=250,limit=None):        
 
     #container for parsed letter images
     letters=[]

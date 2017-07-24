@@ -1,5 +1,6 @@
 ##look for completed observations, move the files
 library(stringr)
+library(dplyr)
 
 int<-read.csv("HummingbirdData/Interactions.csv",row.names=1)
 
@@ -16,6 +17,7 @@ for( i in 1:nrow(complete_folder)){
   x<-complete_folder[i,]
   full_path<-paste(basename,x$site,"foundframes",x$folder,sep="/")
   out_folder<-paste(outputpath,x$site,"foundframes",x$folder,sep="/")
+  
   #create directories if they don't exist
   if(!dir.exists(out_folder)){
     dir.create(out_folder,recursive = T)
@@ -26,9 +28,13 @@ for( i in 1:nrow(complete_folder)){
   to<-paste(out_folder,list.files(full_path,recursive = T),sep="/")
   
   #move files
-  file.copy(from,to)
+  file.copy(from,to,overwrite = T)
   
   #remove files
   file.remove(from)
   
-}
+  #if the folder if empty, delete it
+  if(length(list.files(full_path,recursive = T,full.names = T))==0){
+    unlink(x=full_path)
+  }
+  }

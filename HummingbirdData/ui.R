@@ -21,9 +21,9 @@ shinyUI(
   "Each month our field team collects information on the hummingbird visited flowers along 12 1.5km transects",
   tableOutput('tran_table'),
   p("Our sites cover a wide elevation gradient from 800m to 3000m."),
-  plotOutput("plant_elev"),
+  plotOutput("plant_elev",width=1000,height=1000),
   p("Available flowers changes over time as new species come into bloom"),
-  plotOutput('phenology'),
+  plotOutput('phenology',height=450,width=750),
 
   #Plant map
   br(),
@@ -33,13 +33,13 @@ shinyUI(
   br(),
   
   h3("Birds"),
-  plotOutput("hum_elev"),
+  plotOutput("hum_elev",width=800,height=600),
   h2("Cameras"),
   fluidRow(
   column(5,tableOutput('cam_table')),
   column(7,tableOutput('int_table'))
   ),
-  plotOutput('int_plot'),
+  plotOutput('int_plot',width=1000,height=700),
   p("Site design by Ben Weinstein - Oregon State University"),
   paste("Last updated",Sys.time())
      )

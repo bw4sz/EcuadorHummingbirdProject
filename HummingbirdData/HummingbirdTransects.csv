@@ -1,42 +1,72 @@
 "","date","Month","Year","site","plant_field_name","total_flowers","height","hummingbird","comment","Transect_ID","lon","lat","elevation","waypoint","time_gps","date_gps","Camera_ID"
-"1","15/02/2017","February","2017","Cambugan","Aphelandra acanthus",1,2,"Specked Hummingbird",NA,"Cambugan_15/02/2017_314",NA,NA,NA,NA,NA,NA,NA
-"2","15/02/2017","February","2017","Cambugan","Columnea strigosa",65,2,"collared Inca",NA,"Cambugan_15/02/2017_367",NA,NA,NA,NA,NA,NA,NA
-"3","16/03/2017","March","2017","LasGralarias","Fuchsia macrostigma",2,2,"Aglaiocercus coelestis",NA,"LasGralarias_16/03/2017_12",NA,NA,NA,NA,NA,NA,NA
-"4","16/03/2017","March","2017","LasGralarias","Bromelia bracteata",2,4,"Aglaiocercus coelestis",NA,"LasGralarias_16/03/2017_28",NA,NA,NA,NA,NA,NA,NA
-"5","16/03/2017","March","2017","LasGralarias","Cavendishia grandifolia",1,6,"Phaethornis yaruqui",NA,"LasGralarias_16/03/2017_32",NA,NA,NA,NA,NA,NA,NA
-"6","27/01/2017","January","2017","Maquipucuna","Renealmia sessilifolia",2,2,"Ocreatus underwoodii",NA,"Maquipucuna_27/01/2017_815",-78.629144,0.106411,"1644.421265","815","14:06:56","27/01/2017","Maquipucuna_815"
-"7","27/01/2017","January","2017","Maquipucuna","Palicourea demissa",2,4,"Ocreatus underwoodii",NA,"Maquipucuna_27/01/2017_815",-78.629144,0.106411,"1644.421265","815","14:06:56","27/01/2017","Maquipucuna_815"
-"8","27/01/2017","January","2017","Maquipucuna","Palicourea demissa",12,6,"Ocreatus underwoodii",NA,"Maquipucuna_27/01/2017_857",-78.62897,0.103214,"1710.865234","857","15:02:07","27/01/2017","Maquipucuna_857"
-"9","25/02/2017","February","2017","Maquipucuna","Palicourea demissa",2,6,"Ocreatus underwoodii",NA,"Maquipucuna_25/02/2017_1335",-78.629721,0.106875,"1590.808716","1335","13:45:32","25/02/2017","Maquipucuna_1335"
-"10","18/03/2017","March","2017","Maquipucuna","Macleania recumbens",14,5,"Coeligena wilsoni",NA,"Maquipucuna_18/03/2017_1495",-78.62902,0.107818,"1563.921021","1495","13:33:07","18/03/2017","Maquipucuna_1495"
-"11","18/03/2017","March","2017","Maquipucuna","Macleania recumbens",15,2,"Ocreatus underwoodii",NA,"Maquipucuna_18/03/2017_1523",-78.628475,0.10687,"1610.613770","1523","14:47:13","18/03/2017","Maquipucuna_1523"
-"12","18/03/2017","March","2017","Maquipucuna","Columnea kucyniakii",3,5,"Ocreatus underwoodii",NA,"Maquipucuna_18/03/2017_1558",-78.629038,0.104431,"1685.017334","1558","16:15:07","18/03/2017","Maquipucuna_1558"
-"13","05/04/2017","April","2017","Maquipucuna","Columnea ciliata",1,2,"Phaethornis syrmatophorus",NA,"Maquipucuna_05/04/2017_1856",-78.628718,0.107563,"1567.341553","1856","12:53:44","05/04/2017","Maquipucuna_1856"
-"14","05/04/2017","April","2017","Maquipucuna","Palicourea demissa",9,5,"Ocreatus underwoodii",NA,"Maquipucuna_05/04/2017_1894",-78.629007,0.104465,"1678.967041","1894","14:14:02","05/04/2017","Maquipucuna_1894"
-"15","05/04/2017","April","2017","Maquipucuna","Palicourea demissa",5,4,"aglaiocercus coelestis",NA,"Maquipucuna_05/04/2017_1911",-78.628684,0.102853,"1717.025513","1911","14:41:03","05/04/2017","Maquipucuna_1911"
-"16","18/03/2017","March","2017","Verdecocha","Fuchsia cinerea",13,10,"Coeligena lutetitae","0-25","Verdecocha_18/03/2017_NA",NA,NA,NA,NA,NA,NA,NA
-"17","18/03/2017","March","2017","Verdecocha","Macleania rupestris",15,5,"Metallura tyrianthina",NA,"Verdecocha_18/03/2017_372",-78.59623877,-0.12317634,"3417.587","372","9:03:52","18/03/2017","Verdecocha_372"
-"18","18/03/2017","March","2017","Verdecocha","Macleania rupestris",4,6,"Eriocnemis luciani",NA,"Verdecocha_18/03/2017_423",-78.59733932,-0.11643612,"3401.965","423","11:57:59","18/03/2017","Verdecocha_423"
-"19","18/03/2017","March","2017","Verdecocha","Macleania rupestris",6,67,"Eriocnemis luciani",NA,"Verdecocha_18/03/2017_427",-78.59779697,-0.11573397,"3406.051","427","12:19:46","18/03/2017","Verdecocha_427"
-"20","18/03/2017","March","2017","Verdecocha","Disterigma alaternoides",3,1,"Metallura tyrianthina",NA,"Verdecocha_18/03/2017_429",-78.59781373,-0.11551076,"3413.742","429","12:30:04","18/03/2017","Verdecocha_429"
-"21","4/4/2017","April","2017","Verdecocha","Macleania rupestris",9,8,"Eriocnemis luciani",NA,"Verdecocha_4/4/2017_95",NA,NA,NA,NA,NA,NA,NA
-"22","4/4/2017","April","2017","Verdecocha","Macleania rupestris",30,6,"Coeligena lutetitae","2 ind","Verdecocha_4/4/2017_98",NA,NA,NA,NA,NA,NA,NA
-"23","4/4/2017","April","2017","Verdecocha","Macleania rupestris",3,4,"Eriocnemis luciani",NA,"Verdecocha_4/4/2017_103",NA,NA,NA,NA,NA,NA,NA
-"24","4/4/2017","April","2017","Verdecocha","Macleania rupestris",22,8,"Diglossa lafresnayi",NA,"Verdecocha_4/4/2017_117",NA,NA,NA,NA,NA,NA,NA
-"25","4/4/2017","April","2017","Verdecocha","Racinaea tetrantha",1,7,"Metallura tyrianthina","Dos individuos","Verdecocha_4/4/2017_119",NA,NA,NA,NA,NA,NA,NA
-"26","4/4/2017","April","2017","Verdecocha","Macleania rupestris",6,4,"Eriocnemis luciani",NA,"Verdecocha_4/4/2017_196",NA,NA,NA,NA,NA,NA,NA
-"27","4/4/2017","April","2017","Verdecocha","Disterigma alaternoides",7,2,"Eriocnemis luciani",NA,"Verdecocha_4/4/2017_221",NA,NA,NA,NA,NA,NA,NA
-"28","17/03/2017","March","2017","Yanacocha","Columnea dielsii",2,3,"Coeligena lutetiae","GPS amarillo no buena se<U+00F1>al","Yanacocha_17/03/2017_32",NA,NA,NA,NA,NA,NA,NA
-"29","17/03/2017","March","2017","Yanacocha","Fuchsia cinerea",10,5,"Coeligena lutetiae","error 27 m en GPS","Yanacocha_17/03/2017_33",NA,NA,NA,NA,NA,NA,NA
-"30","17/03/2017","March","2017","Yanacocha","Columnea dielsii",7,6,"Metallura tyrianthina","GPS amarillo no buena se<U+00F1>al","Yanacocha_17/03/2017_38",NA,NA,NA,NA,NA,NA,NA
-"31","17/03/2017","March","2017","Yanacocha","Fuchsia cinerea",7,8,"Metallura tyrianthina","Error GPS","Yanacocha_17/03/2017_NA",NA,NA,NA,NA,NA,NA,NA
-"32","17/03/2017","March","2017","Yanacocha","Macleania rupestris",8,3,"Eriocnemis luciani","Error GPS","Yanacocha_17/03/2017_NA",NA,NA,NA,NA,NA,NA,NA
-"33","17/03/2017","March","2017","Yanacocha","Columnea dielsii",2,6,"Coeligena lutetiae","error 20m en GPS","Yanacocha_17/03/2017_43",NA,NA,NA,NA,NA,NA,NA
-"34","17/03/2017","March","2017","Yanacocha","Macleania rupestris",6,3,"Coeligena lutetiae","error 27m en GPS","Yanacocha_17/03/2017_53",NA,NA,NA,NA,NA,NA,NA
-"35","17/03/2017","March","2017","Yanacocha","Columnea dielsii",6,5,"Coeligena lutetiae","error 58m en GPS","Yanacocha_17/03/2017_60",NA,NA,NA,NA,NA,NA,NA
-"36","17/03/2017","March","2017","Yanacocha","Columnea dielsii",3,3,"Coeligena lutetiae",NA,"Yanacocha_17/03/2017_NA",NA,NA,NA,NA,NA,NA,NA
-"37","17/03/2017","March","2017","Yanacocha","Centropogon pichinchensis",1,2,"Coeligena lutetiae","Error GPS","Yanacocha_17/03/2017_NA",NA,NA,NA,NA,NA,NA,NA
-"38","17/03/2017","March","2017","Yanacocha","Columnea dielsii",18,5,"Coeligena lutetiae","error 14m en GPS","Yanacocha_17/03/2017_66",NA,NA,NA,NA,NA,NA,NA
-"39","17/03/2017","March","2017","Yanacocha","Centropogon pichinchensis",1,3,"Coeligena lutetiae","error 14m en GPS","Yanacocha_17/03/2017_76",NA,NA,NA,NA,NA,NA,NA
-"40","17/03/2017","March","2017","Yanacocha","Fuchsia cinerea",2,4,"Coeligena lutetiae","Error GPS","Yanacocha_17/03/2017_NA",NA,NA,NA,NA,NA,NA,NA
-"41","4/4/2017","April","2017","Yanacocha","Macleania rupestris",8,9,"Coeligena lutetiae",NA,"Yanacocha_4/4/2017_91",NA,NA,NA,NA,NA,NA,NA
+"1","15/02/2017","February","2017","Cambugan","Aphelandra acanthus",1,"2","Adelomyia melanogenys",NA,"Cambugan_15/02/2017_314",NA,NA,NA,NA,NA,NA,NA
+"2","15/02/2017","February","2017","Cambugan","Columnea strigosa",65,"2","Coeligena torquata",NA,"Cambugan_15/02/2017_367",NA,NA,NA,NA,NA,NA,NA
+"3","16/03/2017","March","2017","LasGralarias","Mezobromelia capituligera",4,"7","Boissonneaua flavescens",NA,"LasGralarias_16/03/2017_7",NA,NA,NA,NA,NA,NA,NA
+"4","16/03/2017","March","2017","LasGralarias","Fuchsia macrostigma",2,"2","Aglaiocercus coelestis",NA,"LasGralarias_16/03/2017_12",NA,NA,NA,NA,NA,NA,NA
+"5","16/03/2017","March","2017","LasGralarias","Guzmania squarrosa",2,"4","Aglaiocercus coelestis",NA,"LasGralarias_16/03/2017_28",NA,NA,NA,NA,NA,NA,NA
+"6","16/03/2017","March","2017","LasGralarias","Guzmania jaramilloi",2,"4","Colibri",NA,"LasGralarias_16/03/2017_30",NA,NA,NA,NA,NA,NA,NA
+"7","16/03/2017","March","2017","LasGralarias","Cavendishia grandifolia",1,"6","Phaethornis yaruqui",NA,"LasGralarias_16/03/2017_32",NA,NA,NA,NA,NA,NA,NA
+"8","11/05/2017","May","2017","LasGralarias","Palicourea demissa",26,"2","Phaethornis syrmatophorus",NA,"LasGralarias_11/05/2017_553",-78.733304,-0.010928,"2054.494","553","15:00:18","11/05/2017","LasGralarias_553"
+"9","11/05/2017","May","2017","LasGralarias","Palicourea demissa",3,"2","Aglaiocercus coelestis",NA,"LasGralarias_11/05/2017_556",-78.733624,-0.010942,"2055.232","556","15:16:51","11/05/2017","LasGralarias_556"
+"10","16/06/2017","June","2017","LasGralarias","Palicourea sodiroi",21,"3","Aglaiocercus kingii","Feeding while hovering for 30'","LasGralarias_16/06/2017_669",-78.732199,-0.011536,"1998.948730","669","12:27:53","16/06/2017","LasGralarias_669"
+"11","16/06/2017","June","2017","LasGralarias","Tillandsia complanata",1,"6","Boissonneaua jardini",NA,"LasGralarias_16/06/2017_724",-78.732815,-0.011035,"2046.984009","724","17:42:49","16/06/2017","LasGralarias_724"
+"12","27/01/2017","January","2017","Maquipucuna","Renealmia sessilifolia",2,"2","Ocreatus underwoodii","","Maquipucuna_27/01/2017_815",-78.629144,0.106411,"1644.421265","815","14:06:56","27/01/2017","Maquipucuna_815"
+"13","27/01/2017","January","2017","Maquipucuna","Palicourea demissa",2,"4","Ocreatus underwoodii","","Maquipucuna_27/01/2017_815",-78.629144,0.106411,"1644.421265","815","14:06:56","27/01/2017","Maquipucuna_815"
+"14","27/01/2017","January","2017","Maquipucuna","Palicourea demissa",12,"6","Ocreatus underwoodii","","Maquipucuna_27/01/2017_857",-78.62897,0.103214,"1710.865234","857","15:02:07","27/01/2017","Maquipucuna_857"
+"15","25/02/2017","February","2017","Maquipucuna","Palicourea demissa",2,"6","Ocreatus underwoodii","","Maquipucuna_25/02/2017_1335",-78.629721,0.106875,"1590.808716","1335","13:45:32","25/02/2017","Maquipucuna_1335"
+"16","18/03/2017","March","2017","Maquipucuna","Macleania recumbens",14,"5","Coeligena wilsoni","","Maquipucuna_18/03/2017_1495",-78.62902,0.107818,"1563.921021","1495","13:33:07","18/03/2017","Maquipucuna_1495"
+"17","18/03/2017","March","2017","Maquipucuna","Macleania recumbens",15,"2","Ocreatus underwoodii","","Maquipucuna_18/03/2017_1523",-78.628475,0.10687,"1610.613770","1523","14:47:13","18/03/2017","Maquipucuna_1523"
+"18","18/03/2017","March","2017","Maquipucuna","Columnea kucyniakii",3,"5","Ocreatus underwoodii","","Maquipucuna_18/03/2017_1558",-78.629038,0.104431,"1685.017334","1558","16:15:07","18/03/2017","Maquipucuna_1558"
+"19","05/04/2017","April","2017","Maquipucuna","Columnea ciliata",1,"2","Phaethornis syrmatophorus","","Maquipucuna_05/04/2017_1856",-78.628718,0.107563,"1567.341553","1856","12:53:44","05/04/2017","Maquipucuna_1856"
+"20","05/04/2017","April","2017","Maquipucuna","Palicourea demissa",9,"5","Ocreatus underwoodii","","Maquipucuna_05/04/2017_1894",-78.629007,0.104465,"1678.967041","1894","14:14:02","05/04/2017","Maquipucuna_1894"
+"21","05/04/2017","April","2017","Maquipucuna","Palicourea demissa",5,"4","Aglaiocercus coelestis","","Maquipucuna_05/04/2017_1911",-78.628684,0.102853,"1717.025513","1911","14:41:03","05/04/2017","Maquipucuna_1911"
+"22","11/05/2017","May","2017","Maquipucuna","Palicourea demissa",24,"6","Ocreatus underwoodii","","Maquipucuna_11/05/2017_509",-78.628737,0.108345,"1530.546875","509","13:02:19","11/05/2017","Maquipucuna_509"
+"23","11/05/2017","May","2017","Maquipucuna","Palicourea demissa",1,"5","Ocreatus underwoodii","","Maquipucuna_11/05/2017_522",-78.62945,0.107325,"1574.102539","522","13:28:13","11/05/2017","Maquipucuna_522"
+"24","09/06/2017","June","2017","Maquipucuna","Palicourea demissa",4,"4","Ocreatus underwoodii","","Maquipucuna_09/06/2017_642",-78.629631,0.107073,"1569.611084","642","14:16:47","09/06/2017","Maquipucuna_642"
+"25","09/06/2017","June","2017","Maquipucuna","Palicourea demissa",18,"4","Aglaiocercus coelestis","","Maquipucuna_09/06/2017_648",-78.629414,0.107024,"1584.925049","648","14:24:32","09/06/2017","Maquipucuna_648"
+"26","13/07/2017","July","2017","Maquipucuna","Palicourea demissa",28,"5","Colibri delphinae","","Maquipucuna_13/07/2017_1500",-78.628546,0.108765,"1527.015991","1500","12:26:23","13/07/2017","Maquipucuna_1500"
+"27","13/07/2017","July","2017","Maquipucuna","Palicourea demissa",2,"5","Phaethornis yaruqui","heard only","Maquipucuna_13/07/2017_1508",-78.628906,0.10815,"1545.340820","1508","12:41:53","13/07/2017","Maquipucuna_1508"
+"28","13/07/2017","July","2017","Maquipucuna","Palicourea demissa",6,"5","Ocreatus underwoodii","","Maquipucuna_13/07/2017_1563",-78.629437,0.10515,"1657.333984","1563","14:11:56","13/07/2017","Maquipucuna_1563"
+"29","13/5/2017","May","2017","MashpiCapuchin","Bromelia paniculata",2,"8","Androdon aequatorialis",NA,"MashpiCapuchin_13/5/2017_74",NA,NA,NA,NA,NA,NA,NA
+"30","18/3/2017","March","2017","Verdecocha","Fuchsia cinerea",13,"10","Coeligena lutetiae","0-25","Verdecocha_18/3/2017_NA",NA,NA,NA,NA,NA,NA,NA
+"31","18/3/2017","March","2017","Verdecocha","Macleania rupestris",15,"5","Metallura tyrianthina",NA,"Verdecocha_18/3/2017_372",NA,NA,NA,NA,NA,NA,NA
+"32","18/3/2017","March","2017","Verdecocha","Macleania rupestris",4,"6","Eriocnemis luciani",NA,"Verdecocha_18/3/2017_423",NA,NA,NA,NA,NA,NA,NA
+"33","18/3/2017","March","2017","Verdecocha","Macleania rupestris",6,"67","Eriocnemis luciani",NA,"Verdecocha_18/3/2017_427",NA,NA,NA,NA,NA,NA,NA
+"34","18/3/2017","March","2017","Verdecocha","Disterigma alaternoides",3,"1","Metallura tyrianthina",NA,"Verdecocha_18/3/2017_429",NA,NA,NA,NA,NA,NA,NA
+"35","4/4/2017","April","2017","Verdecocha","Salvia pichinchensis",12,"6","Pterophanes cyanopterus","3 sec; flor morada","Verdecocha_4/4/2017_92",NA,NA,NA,NA,NA,NA,NA
+"36","4/4/2017","April","2017","Verdecocha","Macleania rupestris",9,"8","Eriocnemis luciani",NA,"Verdecocha_4/4/2017_95",NA,NA,NA,NA,NA,NA,NA
+"37","4/4/2017","April","2017","Verdecocha","Macleania rupestris",30,"6","Coeligena lutetiae","2 ind","Verdecocha_4/4/2017_98",NA,NA,NA,NA,NA,NA,NA
+"38","4/4/2017","April","2017","Verdecocha","Macleania rupestris",3,"4","Eriocnemis luciani",NA,"Verdecocha_4/4/2017_103",NA,NA,NA,NA,NA,NA,NA
+"39","4/4/2017","April","2017","Verdecocha","Macleania rupestris",22,"8","Diglossa lafresnayi",NA,"Verdecocha_4/4/2017_117",NA,NA,NA,NA,NA,NA,NA
+"40","4/4/2017","April","2017","Verdecocha","Racinaea tetrantha",1,"7","Metallura tyrianthina","Dos individuos","Verdecocha_4/4/2017_119",NA,NA,NA,NA,NA,NA,NA
+"41","4/4/2017","April","2017","Verdecocha","Macleania rupestris",6,"4","Eriocnemis luciani",NA,"Verdecocha_4/4/2017_196",NA,NA,NA,NA,NA,NA,NA
+"42","4/4/2017","April","2017","Verdecocha","Disterigma alaternoides",7,"2","Eriocnemis luciani",NA,"Verdecocha_4/4/2017_221",NA,NA,NA,NA,NA,NA,NA
+"43","5/5/2017","May","2017","Verdecocha","Macleania rupestris",7,"4","Coeligena lutetiae",NA,"Verdecocha_5/5/2017_301",NA,NA,NA,NA,NA,NA,NA
+"44","5/5/2017","May","2017","Verdecocha","Macleania rupestris",40,"8","Metallura tyrianthina",NA,"Verdecocha_5/5/2017_307",NA,NA,NA,NA,NA,NA,NA
+"45","5/5/2017","May","2017","Verdecocha","Palicourea fuchsioides",21,"2","Eriocnemis nigrivestis",NA,"Verdecocha_5/5/2017_361",NA,NA,NA,NA,NA,NA,NA
+"46","12/6/2017","June","2017","Verdecocha","Macleania rupestris",31,"7","Eriocnemis luciani","2 sec","Verdecocha_12/6/2017_107",NA,NA,NA,NA,NA,NA,NA
+"47","12/6/2017","June","2017","Verdecocha","Macleania rupestris",4,"5","Eriocnemis luciani",NA,"Verdecocha_12/6/2017_144",NA,NA,NA,NA,NA,NA,NA
+"48","12/6/2017","June","2017","Verdecocha","Thibaudia floribunda",47,"5","Metallura tyrianthina",NA,"Verdecocha_12/6/2017_188",NA,NA,NA,NA,NA,NA,NA
+"49","17/03/2017","March","2017","Yanacocha","Columnea dielsii",2,"3","Coeligena lutetiae","GPS amarillo no buena señal","Yanacocha_17/03/2017_32",NA,NA,NA,NA,NA,NA,NA
+"50","17/03/2017","March","2017","Yanacocha","Fuchsia cinerea",10,"5","Coeligena lutetiae","error 27 m en GPS","Yanacocha_17/03/2017_33",NA,NA,NA,NA,NA,NA,NA
+"51","17/03/2017","March","2017","Yanacocha","Columnea dielsii",7,"6","Metallura tyrianthina","GPS amarillo no buena señal","Yanacocha_17/03/2017_38",NA,NA,NA,NA,NA,NA,NA
+"52","17/03/2017","March","2017","Yanacocha","Fuchsia cinerea",7,"8","Metallura tyrianthina","Error GPS","Yanacocha_17/03/2017_NA",NA,NA,NA,NA,NA,NA,NA
+"53","17/03/2017","March","2017","Yanacocha","Macleania rupestris",8,"3","Eriocnemis luciani","Error GPS","Yanacocha_17/03/2017_NA",NA,NA,NA,NA,NA,NA,NA
+"54","17/03/2017","March","2017","Yanacocha","Columnea dielsii",2,"6","Coeligena lutetiae","error 20m en GPS","Yanacocha_17/03/2017_43",NA,NA,NA,NA,NA,NA,NA
+"55","17/03/2017","March","2017","Yanacocha","Macleania rupestris",6,"3","Coeligena lutetiae","error 27m en GPS","Yanacocha_17/03/2017_53",NA,NA,NA,NA,NA,NA,NA
+"56","17/03/2017","March","2017","Yanacocha","Columnea dielsii",6,"5","Coeligena lutetiae","error 58m en GPS","Yanacocha_17/03/2017_60",NA,NA,NA,NA,NA,NA,NA
+"57","17/03/2017","March","2017","Yanacocha","Columnea dielsii",3,"3","Coeligena lutetiae",NA,"Yanacocha_17/03/2017_NA",NA,NA,NA,NA,NA,NA,NA
+"58","17/03/2017","March","2017","Yanacocha","Centropogon pichinchensis",1,"2","Coeligena lutetiae","Error GPS","Yanacocha_17/03/2017_NA",NA,NA,NA,NA,NA,NA,NA
+"59","17/03/2017","March","2017","Yanacocha","Columnea dielsii",18,"5","Coeligena lutetiae","error 14m en GPS","Yanacocha_17/03/2017_66",NA,NA,NA,NA,NA,NA,NA
+"60","17/03/2017","March","2017","Yanacocha","Centropogon pichinchensis",1,"3","Coeligena lutetiae","error 14m en GPS","Yanacocha_17/03/2017_76",NA,NA,NA,NA,NA,NA,NA
+"61","17/03/2017","March","2017","Yanacocha","Fuchsia cinerea",2,"4","Coeligena lutetiae","Error GPS","Yanacocha_17/03/2017_NA",NA,NA,NA,NA,NA,NA,NA
+"62","04/04/2017","April","2017","Yanacocha","Macleania rupestris",8,"9","Coeligena lutetiae",NA,"Yanacocha_04/04/2017_91",NA,NA,NA,NA,NA,NA,NA
+"63","06/05/2017","May","2017","Yanacocha","Salvia pichinchensis",9,"1","Coeligena lutetiae",NA,"Yanacocha_06/05/2017_479",-78.590242,-0.12252,"3510.137","479","17:53:20","06/05/2017","Yanacocha_479"
+"64","06/05/2017","May","2017","Yanacocha","Centropogon pichinchensis",5,"1","Coeligena lutetiae",NA,"Yanacocha_06/05/2017_481",-78.59037,-0.122534,"3502.666","481","17:58:49","06/05/2017","Yanacocha_481"
+"65","14/06/2017","June","2017","Yanacocha","Fuchsia cinerea",3,"2","Coeligena lutetiae","perching 10 sec","Yanacocha_14/06/2017_205",-78.589969,-0.117184,"3517.506","205","13:53:50","14/06/2017","Yanacocha_205"
+"66","14/06/2017","June","2017","Yanacocha","Macleania rupestris",15,"3","Eriocnemis luciani",NA,"Yanacocha_14/06/2017_217",-78.590372,-0.118086,"3498.517","217","14:32:43","14/06/2017","Yanacocha_217"
+"67","14/06/2017","June","2017","Yanacocha","Macleania rupestris",3,"3","Eriocnemis luciani",NA,"Yanacocha_14/06/2017_223",-78.590423,-0.118544,"3507.148","223","14:59:32","14/06/2017","Yanacocha_223"
+"68","14/06/2017","June","2017","Yanacocha","Macleania rupestris",1,"4","Coeligena lutetiae",NA,"Yanacocha_14/06/2017_225",-78.590495,-0.118824,"3510.404","225","15:15:07","14/06/2017","Yanacocha_225"
+"69","14/06/2017","June","2017","Yanacocha","Centropogon pichinchensis",18,"3","Coeligena lutetiae",NA,"Yanacocha_14/06/2017_228",-78.590595,-0.119048,"3508.761","228","15:24:27","14/06/2017","Yanacocha_228"
+"70","14/06/2017","June","2017","Yanacocha","Disterigma alaternoides",20,"3","Metallura tyrianthina",NA,"Yanacocha_14/06/2017_242",-78.590322,-0.120438,"3515.352","242","16:45:42","14/06/2017","Yanacocha_242"
+"71","14/06/2017","June","2017","Yanacocha","Centropogon pichinchensis",6,"10","Eriocnemis luciani",NA,"Yanacocha_14/06/2017_308",-78.591082,-0.12568,"3472.768","308","20:07:18","14/06/2017","Yanacocha_308"

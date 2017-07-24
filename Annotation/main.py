@@ -52,29 +52,32 @@ if __name__ == "__main__":
                 date_number.append(lookup[x])
             print("Predicted date: " + "".join(date_number))
                 
-            #Annotate time?
-            #Time
+            #Annotate time
             time_pred=[]
-             
-             #Hour
-            hour_letters=ExtractLetters.getLetters(image=image_path,roi=[777,702,821,750]) 
+         
+            hour_letters=ExtractLetters.getLetters(image=image_path,roi=[777,702,915,750]) 
             for x in hour_letters:
                 time_pred.append(tensorflow_instance.predict(sess=sess,image_array=x))
-         
-             #colon between hour and minute
-            time_pred.append(":")
              
-             #Minute
-            minute_letters=ExtractLetters.getLetters(image=image_path,roi=[829,702,868,750]) 
-            for x in minute_letters:
-                time_pred.append(tensorflow_instance.predict(sess=sess,image_array=x))
+             ##Hour
+            #hour_letters=ExtractLetters.getLetters(image=image_path,roi=[777,702,821,750]) 
+            #for x in hour_letters:
+                #time_pred.append(tensorflow_instance.predict(sess=sess,image_array=x))
          
-             #colon between minute and second
-            time_pred.append(":")
-            #Second
-            second_letters=ExtractLetters.getLetters(image=image_path,roi=[876,702,915,750]) 
-            for x in second_letters:
-                time_pred.append(tensorflow_instance.predict(sess=sess,image_array=x))
+             ##colon between hour and minute
+            #time_pred.append(":")
+             
+             ##Minute
+            #minute_letters=ExtractLetters.getLetters(image=image_path,roi=[829,702,868,750]) 
+            #for x in minute_letters:
+                #time_pred.append(tensorflow_instance.predict(sess=sess,image_array=x))
+         
+             ##colon between minute and second
+            #time_pred.append(":")
+            ##Second
+            #second_letters=ExtractLetters.getLetters(image=image_path,roi=[876,702,915,750]) 
+            #for x in second_letters:
+                #time_pred.append(tensorflow_instance.predict(sess=sess,image_array=x))
              
              #lookup numeric value
             time_number=[]    

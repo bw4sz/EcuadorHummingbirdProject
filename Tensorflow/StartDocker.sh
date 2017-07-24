@@ -2,7 +2,7 @@
 
 #Startup script
 git clone https://github.com/bw4sz/EcuadorHummingbirdProject.git
-cd EcuadorHummingbirdProject/tensorflow
+cd EcuadorHummingbirdProject/Tensorflow
 
 declare -r USER="Ben"
 declare -r PROJECT=$(gcloud config list project --format "value(core.project)")
@@ -11,7 +11,7 @@ declare -r BUCKET="gs://${PROJECT}-ml"
 declare -r GCS_PATH="${BUCKET}/${USER}/${JOB_ID}"
 declare -r MODEL_NAME="Plotwatcher_Annotation"
 
-#from scratch
+#train from scratch
 python pipeline.py \
     --project ${PROJECT} \
     --cloud \

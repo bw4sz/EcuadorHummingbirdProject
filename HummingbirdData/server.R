@@ -30,11 +30,11 @@ server <- function(input, output, session) {
   #month factor
   
   transects$Month<-factor(transects$Month,levels=month.name)
-  phenology<-transects %>% group_by(site,Month,Year) %>% summarize(total_flowers=sum(total_flowers),ele=mean(elevation))
+  phenology<-transects %>% group_by(site,Month,Year) %>% summarize(total_flowers=sum(total_flowers),ele=mean(elevation),n=n()) %>% filter(Year %in% 2017)
   output$phenology<-renderPlot({
     p<-ggplot(data=phenology,aes(x=Month,y=total_flowers,col=ele)) + facet_wrap(~Year) + geom_point(size=4) + geom_line(aes(group=site)) + labs(y="Flowers",col="Site") + theme_bw()
     print(p)
-  },height=350,width=750)
+  })
   
   #plant elevation ranges
   #screen plants with more than 20 records
@@ -45,7 +45,7 @@ server <- function(input, output, session) {
   plant_ord<-common_totals  %>% droplevels() %>% group_by(plant_field_name) %>% summarize(e=mean(as.numeric(elevation))) %>% arrange(e) %>% .$plant_field_name
   common_totals$plant_field_name <- factor(common_totals$plant_field_name,levels=plant_ord)
   plant_elev<-ggplot(common_totals,aes(x=plant_field_name,y=as.numeric(elevation))) + geom_boxplot(aes(fill=site)) + coord_flip() + theme_bw() + labs(x="Elevation(m)",y="Species",fill="Site") 
-  output$plant_elev<-renderPlot(plant_elev,width=900,height=400)
+  output$plant_elev<-renderPlot(plant_elev)
   
   #Camera Data
   camera_dat<-read.csv("Cameras.csv")

@@ -3,9 +3,6 @@ library(knitr)
 
 setwd("C:/Users/Ben/Documents/EcuadorHummingbirdProject/")
 
-#annotate frames
-system("python C:/Users/Ben/Documents/EcuadorHummingbirdProject/Annotation/main.py")
-
 #clean data
 knit('Aggregate.Rmd')
 

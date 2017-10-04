@@ -30,9 +30,12 @@ server <- function(input, output, session) {
   #month factor
   
   transects$Month<-factor(transects$Month,levels=month.name)
-  phenology<-transects %>% group_by(site,Month,Year) %>% summarize(total_flowers=sum(total_flowers),ele=mean(elevation),n=n()) %>% filter(Year %in% 2017)
+  phenology<-transects %>% group_by(site,Month,Year) %>% summarize(total_flowers=sum(total_flowers),ele=mean(elevation,na.rm=T),n=n()) %>% filter(Year %in% 2017)
+  #split sites by elevation
+  phenology$bin<-cut(phenology$ele,c(0,1200,2200,4000),labels=c("0m-1200m","1200m-2200m","2200m-4000m"))
+  
   output$phenology<-renderPlot({
-    p<-ggplot(data=phenology,aes(x=Month,y=total_flowers,col=ele)) + facet_wrap(~Year) + geom_point(size=4) + geom_line(aes(group=site)) + labs(y="Flowers",col="Site") + theme_bw()
+    p<-ggplot(data=phenology,aes(x=Month,y=total_flowers,col=site)) + facet_wrap(~bin,nrow=1) + geom_point(size=4) + geom_line(aes(group=site)) + labs(y="Flowers",col="Site") + theme_bw()
     print(p)
   })
   

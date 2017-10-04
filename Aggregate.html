@@ -123,91 +123,1596 @@ $(document).ready(function () {
 </div>
 
 
+<div id="gps-data" class="section level1">
+<h1>GPS Data</h1>
+<pre class="r"><code>allwaypoints&lt;-list.files(basename,recursive=TRUE,full.name=TRUE,pattern=&quot;.gpx&quot;)</code></pre>
+<pre class="r"><code>#read in waypoints
+wayfiles&lt;-function(x){
+    try(k&lt;-readGPX(x,waypoints=TRUE)$waypoints)
+    k$site&lt;-str_match(x,&quot;(\\w+)/waypoints&quot;)[2]
+    if(&quot;cmt&quot; %in% (colnames(k))){
+      k$time&lt;-k$cmt
+    }
+    return(k)
+  }
+wpoints&lt;-lapply(allwaypoints,wayfiles)
+wpoints&lt;-wpoints[!sapply(wpoints,length)==1]
+
+wpoints&lt;-lapply(wpoints,function(x){
+  k&lt;-x %&gt;% dplyr::select(lon,lat,elevation=ele,time,waypoint=name,site)
+})
+
+wpoints&lt;-rbind_all(wpoints)</code></pre>
+<pre class="r"><code>#Standardize time field
+
+get_time&lt;-function(x){
+  
+  if(nchar(x)==20){
+    b&lt;-strsplit(as.character(x),&quot;T&quot;)[[1]][2]
+    #remove the z
+    b&lt;-strsplit(as.character(b),&quot;Z&quot;)[[1]][1]
+    timet&lt;-format(strptime(b,&quot;%H:%M:%S&quot;),&quot;%H:%M:%S&quot;)
+    return(timet)
+    }
+
+#poco de choco string, ask nicole to change her GPS to english abbreviations?
+if(nchar(x) %in% c(17,18)){
+  timet&lt;-strsplit(x,&quot; &quot;)[[1]][[2]]
+  return(timet)
+}
+ 
+  return(NA) 
+
+}
+
+wpoints$time_gps&lt;-sapply(wpoints$time,get_time)</code></pre>
+<pre class="r"><code>#spanish lookup table
+mt&lt;-data.frame(Month=month.abb,Spanish=c(&quot;ENE&quot;,&quot;FEB&quot;,&quot;MAR&quot;,&quot;ABR&quot;,&quot;MAY&quot;,&quot;JUN&quot;,&quot;JUL&quot;,&quot;AGO&quot;,&quot;SEP&quot;,&quot;OCT&quot;,&quot;NOV&quot;,&quot;DIC&quot;))
+
+#standardize date field
+get_date&lt;-function(x){
+  if(nchar(x)==20){
+    b&lt;-strsplit(as.character(x),&quot;T&quot;)[[1]][1]
+    #remove the z
+    datet&lt;-format(strptime(b,&quot;%Y-%m-%d&quot;),&quot;%d/%m/%Y&quot;)
+    return(datet)
+    }
+
+  if(nchar(x) %in% c(17,18)){
+  b&lt;-strsplit(as.character(x),&quot;T&quot;)[[1]][1]
+  mnh&lt;-strsplit(b,&quot; &quot;)
+  mn&lt;-strsplit(mnh[[1]][1],&quot;-&quot;)
+  mn[[1]][2]&lt;-as.character(mt$Month[mt$Spanish %in% mn[[1]][2]])
+  paste(mn[[1]],collapse=&quot;-&quot;)
+  datet&lt;-format(strptime(b,&quot;%d-%b-%y&quot;),&quot;%d/%m/%Y&quot;)
+  return(datet)
+  }
+  return(NA)
+}
+
+wpoints$date_gps&lt;-sapply(wpoints$time,get_date)
+
+#create site id, month, year waypoint combination.
+wpoints$Transect_ID&lt;-paste(wpoints$site,wpoints$date_gps,wpoints$waypoint,sep=&quot;_&quot;)
+wpoints$Camera_ID&lt;-paste(wpoints$site,wpoints$waypoint,sep=&quot;_&quot;)
+
+#delete duplicates
+wpoints&lt;-wpoints[!duplicated(wpoints),]</code></pre>
+<pre class="r"><code>#write gps points
+write.csv(wpoints,&quot;/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProjectCleaned/GPS.csv&quot;)
+
+#Write in case we want to visualize with the shiny data
+write.csv(wpoints,&quot;HummingbirdData/GPS.csv&quot;)</code></pre>
+</div>
 <div id="transect-data" class="section level1">
 <h1>Transect Data</h1>
 <pre class="r"><code>transect_files&lt;-list.files(basename,recursive=TRUE,pattern=&quot;transect_&quot;,full.names=T)
 
-#remove example file
-transect_files&lt;-transect_files[!transect_files %in% &quot;transect_example_file.xls&quot;]    
+transect_files&lt;-transect_files[!str_detect(transect_files,&quot;~&quot;)]
+transect_files&lt;-transect_files[!str_detect(transect_files,&quot;metadata&quot;)]
 
-transect_xls&lt;-lapply(transect_files,function(x){
-  read.csv(x)
+transect_xlsx&lt;-lapply(transect_files,function(x){
+  
+  print(x)
+  if(str_detect(x,&quot;.xlsx&quot;)){
+    y&lt;-read_xlsx(x)
+    
+    #turn waypoints to character for the moment
+    y$waypoint&lt;-as.character(y$waypoint)
+    y$total_flowers&lt;-as.character(y$total_flowers)
+    y$height&lt;-as.character(y$height)
+    y$count_method&lt;-as.character(y$count_method)
+    y$flower_unit&lt;-as.character(y$flower_unit)
+    y$flower_count1&lt;-as.character(y$flower_count1)
+
+
+  }
+  if(str_detect(x,&quot;.csv&quot;)){
+    
+    y&lt;-read.csv(x)
+    
+    #turn waypoints to character for the moment
+    y$waypoint&lt;-as.character(y$waypoint)
+    y$total_flowers&lt;-as.character(y$total_flowers)
+    y$flower_unit&lt;-as.character(y$flower_unit)
+    y$flower_count1&lt;-as.character(y$flower_count1)
+
+
+  }
+  
+  return(y)
 })</code></pre>
-<pre><code>## Warning in read.table(file = file, header = header, sep = sep, quote =
-## quote, : incomplete final line found by readTableHeader on 'C:/Users/
-## Ben/Dropbox/Ecuador hummingbird project/Public Folder/Data/CBG_Cambugan/
-## transect_cbg.xls'</code></pre>
-<pre><code>## Warning in read.table(file = file, header = header, sep = sep, quote =
-## quote, : incomplete final line found by readTableHeader on 'C:/Users/Ben/
-## Dropbox/Ecuador hummingbird project/Public Folder/Data/GRAL_LasGralarias/
-## transect_gral.xls'</code></pre>
-<pre><code>## Warning in read.table(file = file, header = header, sep = sep, quote =
-## quote, : incomplete final line found by readTableHeader on 'C:/Users/Ben/
-## Dropbox/Ecuador hummingbird project/Public Folder/Data/MQPC_Maquipucuna/
-## transect_mqpc.xls'</code></pre>
-<pre><code>## Warning in read.table(file = file, header = header, sep = sep, quote =
-## quote, : incomplete final line found by readTableHeader on 'C:/Users/Ben/
-## Dropbox/Ecuador hummingbird project/Public Folder/Data/MSPC_MashpiCapuchin/
-## transect_mspc.xls'</code></pre>
-<pre><code>## Warning in read.table(file = file, header = header, sep = sep, quote =
-## quote, : incomplete final line found by readTableHeader on 'C:/Users/Ben/
-## Dropbox/Ecuador hummingbird project/Public Folder/Data/STL_Santa Lucia/
-## transect_stl.xls'</code></pre>
-<pre><code>## Warning in read.table(file = file, header = header, sep = sep, quote
-## = quote, : incomplete final line found by readTableHeader on 'C:/
-## Users/Ben/Dropbox/Ecuador hummingbird project/Public Folder/Data/
-## transect_example_file.xls'</code></pre>
-<pre><code>## Warning in read.table(file = file, header = header, sep = sep, quote =
-## quote, : line 1 appears to contain embedded nulls</code></pre>
-<pre><code>## Warning in read.table(file = file, header = header, sep = sep, quote =
-## quote, : line 4 appears to contain embedded nulls</code></pre>
-<pre><code>## Warning in read.table(file = file, header = header, sep = sep, quote =
-## quote, : incomplete final line found by readTableHeader on 'C:/Users/Ben/
-## Dropbox/Ecuador hummingbird project/Public Folder/Data/UPDC_Un Poco Del
-## Choco/transect_updc.xlsx'</code></pre>
-<pre><code>## Warning in read.table(file = file, header = header, sep = sep, quote =
-## quote, : incomplete final line found by readTableHeader on 'C:/Users/Ben/
-## Dropbox/Ecuador hummingbird project/Public Folder/Data/VECO_Verdecocha/
-## transect_veco.xls'</code></pre>
-<pre><code>## Warning in read.table(file = file, header = header, sep = sep, quote =
-## quote, : incomplete final line found by readTableHeader on 'C:/Users/Ben/
-## Dropbox/Ecuador hummingbird project/Public Folder/Data/YANA_Yanacocha/
-## transect_yana.xls'</code></pre>
+<pre><code>## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Cambugan/transect_Cambugan.xlsx&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//LasGralarias/transect_lasgralarias.xlsx&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Maquipucuna/transect_Maquipucuna.csv&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//MashpiCapuchin/transect_MashpiCapuchin.xlsx&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//MashpiLaguna/transect_MashpiLaguna.xlsx&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Sachatamia/transect_Sachatamia.xlsx&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//SantaLuciaLower/transect_SantaLuciaLower.csv&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//SantaLuciaUpper/transect_SantaLuciaUpper.csv&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco/transect_UnPocoDelChoco.xlsx&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Verdecocha/transect_Verdecocha.xlsx&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Yanacocha/transect_Yanacocha.xlsx&quot;</code></pre>
 <pre class="r"><code>#Combine files
-transect_data&lt;-bind_rows(transect_xls)</code></pre>
+transect_data&lt;-bind_rows(transect_xlsx)
+
+#turn total flowers back to numeric
+transect_data$total_flowers&lt;-as.numeric(transect_data$total_flowers)</code></pre>
+<div id="cleaning" class="section level2">
+<h2>Cleaning</h2>
+<pre class="r"><code>#Month and year column
+transect_data$Month&lt;-months(strptime(transect_data$date,&quot;%d/%m/%Y&quot;))
+transect_data$Year&lt;-years(strptime(transect_data$date,&quot;%d/%m/%Y&quot;))
+
+#TODO taxize and name standardization
+sources &lt;- gnr_datasources()
+tropicos&lt;-sources$id[sources$title == 'Tropicos - Missouri Botanical Garden']
+
+transect_data$plant_field_name&lt;-factor(transect_data$plant_field_name)
+tran_levels&lt;-levels(transect_data$plant_field_name)
+
+#check for empty cells
+tran_levels&lt;-tran_levels[!tran_levels %in% c(&quot;&quot;,&quot; &quot;)]
+tran_taxize&lt;-list()
+for (x in 1:length(tran_levels)){
+Sys.sleep(0.5)
+tran_taxize[[x]]&lt;-gnr_resolve(tran_levels[x],best_match_only=T,canonical = TRUE,data_source_ids=tropicos)
+}
+tran_taxize&lt;-bind_rows(tran_taxize)
+
+#only keep species with matched double names
+plants_keep&lt;-tran_taxize$submitted_name[sapply(strsplit(tran_taxize$matched_name2,&quot; &quot;),length)==2]
+
+plants_missing&lt;-tran_taxize$submitted_name[!sapply(strsplit(tran_taxize$matched_name2,&quot; &quot;),length)==2]
+
+#get missing data
+transect_unidentified&lt;-transect_data %&gt;% filter(!plant_field_name %in% plants_keep) %&gt;% select(site,plant_field_name) %&gt;% distinct() %&gt;% filter(!is.na(plant_field_name))
+
+transect_data&lt;-transect_data %&gt;% filter(plant_field_name %in% plants_keep) %&gt;% 
+select(date,Month,Year,site,plant_field_name,total_flowers,waypoint,height,hummingbird,comment) %&gt;% droplevels()
+
+#fix mistakes
+
+for (x in levels(transect_data$plant_field_name)){
+  levels(transect_data$plant_field_name)[levels(transect_data$plant_field_name) %in% x]&lt;-tran_taxize[tran_taxize$submitted_name %in% x,&quot;matched_name2&quot;]  
+}
+
+#droplevels
+transect_data&lt;-droplevels(transect_data)
+
+#clean the  birds
+##need to standardize plant species to read from revised plant names
+transect_data[transect_data$hummingbird %in% &quot;&quot;,&quot;hummingbird&quot;]&lt;-NA
+transect_data$hummingbird&lt;-factor(transect_data$hummingbird)
+
+hum_levels&lt;-levels(transect_data$hummingbird)
+hum_levels&lt;-hum_levels[!hum_levels==&quot;&quot;]
+
+hum_taxize&lt;-list()
+for (x in 1:length(hum_levels)){
+  print(hum_levels[x])
+hum_taxize[[x]]&lt;-gnr_resolve(hum_levels[x],best_match_only=T,canonical = TRUE)
+}</code></pre>
+<pre><code>## [1] &quot;Adelomyia melanogenys&quot;
+## [1] &quot;aglaiocercus coelestis&quot;
+## [1] &quot;Aglaiocercus coelestis&quot;
+## [1] &quot;Aglaiocercus kingii&quot;
+## [1] &quot;Androdon aequatorialis&quot;
+## [1] &quot;Boissonneaua flavescens&quot;
+## [1] &quot;Boissonneaua jardini&quot;
+## [1] &quot;Coeligena lutetiae&quot;
+## [1] &quot;Coeligena torquata&quot;
+## [1] &quot;Coeligena wilsoni&quot;
+## [1] &quot;Colibri delphinae&quot;
+## [1] &quot;Colibrí sp.&quot;
+## [1] &quot;Diglossa lafresnayi&quot;
+## [1] &quot;Diglossa lafresnayii&quot;
+## [1] &quot;Eriocnemis luciani&quot;
+## [1] &quot;Eriocnemis nigrivestis&quot;
+## [1] &quot;Lafresnaya lafresnayi&quot;
+## [1] &quot;Metallura tyrianthina&quot;
+## [1] &quot;Methallura tyrianthina&quot;
+## [1] &quot;Ocreatus underwoodii&quot;
+## [1] &quot;Phaethornis syrmatophorus&quot;
+## [1] &quot;Phaethornis yaruqui&quot;
+## [1] &quot;Phaetornis syrmatophorus&quot;
+## [1] &quot;Pterophanes cyanopterus&quot;
+## [1] &quot;Thalurania fannyi&quot;</code></pre>
+<pre class="r"><code>hum_taxize&lt;-bind_rows(hum_taxize)
+
+#fix formatted lavels
+for (x in levels(transect_data$hummingbird)){
+  levels(transect_data$hummingbird)[levels(transect_data$hummingbird) %in% x]&lt;-hum_taxize[hum_taxize$user_supplied_name %in% x,&quot;matched_name2&quot;]  
+}</code></pre>
+</div>
+<div id="combine-with-gps-data" class="section level2">
+<h2>Combine with gps data</h2>
+<pre class="r"><code>transect_data$Transect_ID&lt;-paste(transect_data$site,transect_data$date,transect_data$waypoint,sep=&quot;_&quot;)
+transect_gps&lt;-transect_data %&gt;% left_join(wpoints,by=&quot;Transect_ID&quot;) %&gt;% select(-time,-waypoint.x,waypoint=waypoint.y,-site.y,site=site.x)
+
+paste(missing&lt;-transect_gps %&gt;% filter(is.na(lon)) %&gt;% nrow(.), &quot;transect points missing GPS data&quot;)</code></pre>
+<pre><code>## [1] &quot;1875 transect points missing GPS data&quot;</code></pre>
+<pre class="r"><code>missing_transect_gps&lt;-transect_gps %&gt;% filter(is.na(lon)) %&gt;% group_by(site,date) %&gt;% summarize(n=n())
+
+write.csv(missing_transect_gps,&quot;missing_transect_dates.csv&quot;)</code></pre>
+</div>
+<div id="divide-into-plant-and-hummingbird-transects" class="section level2">
+<h2>Divide into plant and hummingbird transects</h2>
+<pre class="r"><code>hummingbird_transects&lt;-transect_gps %&gt;% filter(!hummingbird==&quot;&quot;)
+
+#What's up with cambugan, alot of no total flower counts?
+plant_transects&lt;-transect_gps %&gt;% filter(!plant_field_name==&quot;&quot;) %&gt;% filter(!is.na(total_flowers))</code></pre>
+</div>
+<div id="write-to-file" class="section level2">
+<h2>Write to file</h2>
+<pre class="r"><code>#plants
+write.csv(hummingbird_transects,&quot;/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProjectCleaned/HummingbirdTransects.csv&quot;)
+
+#write to shiny server
+write.csv(hummingbird_transects,&quot;HummingbirdData/HummingbirdTransects.csv&quot;)
+
+#plants
+write.csv(plant_transects,&quot;/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProjectCleaned/PlantTransects.csv&quot;)
+
+#write to shiny server
+write.csv(plant_transects,&quot;HummingbirdData/PlantTransects.csv&quot;)</code></pre>
+</div>
 </div>
 <div id="camera-data" class="section level1">
 <h1>Camera Data</h1>
-<pre class="r"><code>camera_files&lt;-list.files(basename,recursive=TRUE,pattern=&quot;camera_&quot;,full.names = T)
+<pre class="r"><code>camera_files&lt;-list.files(basename,recursive=TRUE,pattern=&quot;cameras&quot;,full.names = T)
 
-#remove example file
-camera_files&lt;-camera_files[!camera_files %in% &quot;camera_example_file.xls&quot;]    
+camera_xlsx&lt;-lapply(camera_files,function(x){
+  
+  if(str_detect(x,&quot;.xlsx&quot;)){
+    j&lt;-read_xlsx(x)
+    j$waypoint&lt;-as.character(j$waypoint)
+    j$card_id&lt;-as.character(j$card_id)
+    j$start_time&lt;-as.character(j$start_time)
+    j$start_date&lt;-as.character(j$start_date)
+    j$end_date&lt;-as.character(j$end_date)
+    j$end_time&lt;-as.character(j$end_date)
+    j$height&lt;-as.character(j$height)
+    j$X__1&lt;-NULL
+    return(j)
+  }
+  
+  if(str_detect(x,&quot;.csv&quot;)){
+    j&lt;-read.csv(x)
+    j$waypoint&lt;-as.character(j$waypoint)
+    j$card_id&lt;-as.character(j$card_id)
+    j$start_time&lt;-as.character(j$start_time)
+    j$height&lt;-as.character(j$height)
 
-camera_xls&lt;-lapply(camera_files,function(x){
-  read.csv(x)
-})</code></pre>
-<pre><code>## Warning in read.table(file = file, header = header, sep = sep, quote
-## = quote, : incomplete final line found by readTableHeader on 'C:/
-## Users/Ben/Dropbox/Ecuador hummingbird project/Public Folder/Data/
-## camera_example_file.xls'</code></pre>
-<pre class="r"><code>camera_dat&lt;-bind_rows(camera_xls)</code></pre>
+    return(j)
+  }
+  
+})
+
+camera_dat&lt;-bind_rows(camera_xlsx)</code></pre>
+<div id="cleaning-1" class="section level2">
+<h2>Cleaning</h2>
+<pre class="r"><code>#Month and year column
+camera_dat$Month&lt;-months(strptime(camera_dat$start_date,&quot;%d/%m/%Y&quot;))
+camera_dat$Year&lt;-years(strptime(camera_dat$start_date,&quot;%d/%m/%Y&quot;))
+
+##need to standardize plant species to read from revised plant names
+camera_dat$plant_field_name&lt;-factor(camera_dat$plant_field_name)
+
+cam_levels&lt;-levels(camera_dat$plant_field_name)
+cam_taxize&lt;-list()
+for (x in 1:length(cam_levels)){
+cam_taxize[[x]]&lt;-gnr_resolve(cam_levels[x],best_match_only=T,canonical = TRUE,data_source_ids=tropicos)
+}
+cam_taxize&lt;-bind_rows(cam_taxize)
+
+#only keep species with matched double names
+plants_keep&lt;-cam_taxize$submitted_name[sapply(strsplit(cam_taxize$matched_name2,&quot; &quot;),length)==2]
+plants_missing&lt;-cam_taxize$submitted_name[!sapply(strsplit(cam_taxize$matched_name2,&quot; &quot;),length)==2]
+
+camera_missing&lt;-camera_dat %&gt;% filter(!plant_field_name %in% plants_keep) %&gt;% select(site,plant_field_name) %&gt;% distinct()
+
+camera_dat&lt;-camera_dat %&gt;% filter(plant_field_name %in% plants_keep) %&gt;% droplevels()
+
+#for formatted lavels
+for (x in levels(camera_dat$plant_field_name)){
+  levels(camera_dat$plant_field_name)[levels(camera_dat$plant_field_name) %in% x]&lt;-cam_taxize[cam_taxize$submitted_name %in% x,&quot;matched_name2&quot;]  
+}
+
+camera_dat&lt;-droplevels(camera_dat)</code></pre>
+</div>
+<div id="combine-with-gps-data-1" class="section level2">
+<h2>Combine with gps data</h2>
+<pre class="r"><code>camera_dat$Camera_ID&lt;-paste(camera_dat$site,camera_dat$waypoint,sep=&quot;_&quot;)
+camera_gps&lt;-camera_dat %&gt;% left_join(wpoints,by=&quot;Camera_ID&quot;) %&gt;% select(-time,-waypoint.x,waypoint=waypoint.y,site=site.x)
+
+paste(camera_gps %&gt;% filter(is.na(lon)) %&gt;% nrow(.), &quot;camera points missing GPS data&quot;)</code></pre>
+<pre><code>## [1] &quot;50 camera points missing GPS data&quot;</code></pre>
+<pre class="r"><code>camera_gps %&gt;% filter(is.na(lon)) %&gt;% group_by(site) %&gt;% summarize(n=n())</code></pre>
+<pre><code>## # A tibble: 10 x 2
+##               site     n
+##              &lt;chr&gt; &lt;int&gt;
+##  1        Cambugan     5
+##  2    LasGralarias    10
+##  3     Maquipucuna     3
+##  4    MashpiLaguna     4
+##  5            MSPC    16
+##  6      Sachatamia     3
+##  7 SantaLuciaLower     2
+##  8 SantaLuciaUpper     3
+##  9      Verdecocha     1
+## 10       Yanacocha     3</code></pre>
+</div>
+<div id="write-to-file-1" class="section level2">
+<h2>Write to file</h2>
+<pre class="r"><code>#write to dropbox
+write.csv(camera_dat,&quot;/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProjectCleaned/Cameras.csv&quot;)
+
+#write to shiny server
+write.csv(camera_dat,&quot;HummingbirdData/Cameras.csv&quot;)</code></pre>
+</div>
 </div>
 <div id="interaction-data" class="section level1">
 <h1>Interaction Data</h1>
-<pre class="r"><code>int_files&lt;-list.files(basename,recursive=TRUE,pattern=&quot;camera_&quot;,full.names = T)
+<pre class="r"><code>int_files&lt;-list.files(basename,recursive=TRUE,pattern=&quot;observations&quot;,full.names = T)
 
-#remove example file
-int_files&lt;-int_files[!int_files %in% &quot;camera_example_file.xls&quot;]    
-camera_xls&lt;-lapply(int_files,function(x){
-  read.csv(x)
+int_data&lt;-lapply(int_files,function(x){
+  print(x)
+  if(str_detect(x,&quot;.xlsx&quot;)){
+    j&lt;-read_xlsx(x)
+    try(j$site&lt;-str_match(x,&quot;(\\w+)/observations&quot;)[2],silent=T)
+    j$time&lt;-as.character(j$time)
+    j$filename&lt;-as.character(j$filename)
+    j$date&lt;-as.character(j$date)
+    j$waypoint&lt;-as.character(j$waypoint)
+    return(j)
+  }
+  if(str_detect(x,&quot;.csv&quot;)){
+    j&lt;-read.csv(x)
+    try(j$site&lt;-str_match(x,&quot;(\\w+)/observations&quot;)[2],silent=T)
+    j$time&lt;-as.character(j$time)
+    j$filename&lt;-as.character(j$filename)
+    j$date&lt;-as.character(j$date)
+    j$waypoint&lt;-as.character(j$waypoint)
+    return(j)
+  }
+  
 })</code></pre>
-<pre><code>## Warning in read.table(file = file, header = header, sep = sep, quote
-## = quote, : incomplete final line found by readTableHeader on 'C:/
-## Users/Ben/Dropbox/Ecuador hummingbird project/Public Folder/Data/
-## camera_example_file.xls'</code></pre>
-<pre class="r"><code>camera_dat&lt;-bind_rows(camera_xls)</code></pre>
-<div id="write-cleaned-data-to-three-seperate-files" class="section level2">
-<h2>Write cleaned data to three seperate files</h2>
+<pre><code>## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Cambugan/observations_cambugan.xlsx&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//LasGralarias/observations_lasgralarias.xlsx&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Maquipucuna/observations_Maquipucuna.csv&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//MashpiCapuchin/observations_MashpiCapuchin.xlsx&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//MashpiLaguna/observations_MashpiLaguna.xlsx&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Sachatamia/observations_Sachatamia.xlsx&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//SantaLuciaLower/observations_SantaLuciaLower.csv&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//SantaLuciaUpper/observations_SantaLuciaUpper.csv&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco/observations_UnPocoDelChoco.xlsx&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Verdecocha/observations_Verdecocha.xlsx&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Yanacocha/observations_Yanacocha.xlsx&quot;</code></pre>
+<pre class="r"><code>int_data&lt;-bind_rows(int_data)</code></pre>
+<div id="cleaning-2" class="section level2">
+<h2>Cleaning</h2>
+<pre class="r"><code>int_data[int_data$hummingbird %in% &quot;&quot;,&quot;hummingbird&quot;]&lt;-NA
+int_data$hummingbird&lt;-factor(int_data$hummingbird)
+
+int_levels&lt;-levels(int_data$hummingbird)
+int_taxize&lt;-list()
+for (x in 1:length(int_levels)){
+  Sys.sleep(0.5)
+  int_taxize[[x]]&lt;-gnr_resolve(int_levels[x],best_match_only=T,canonical = TRUE)
+}
+int_taxize&lt;-bind_rows(int_taxize)
+
+#only keep species with matched double names
+hum_keep&lt;-int_taxize$submitted_name[sapply(strsplit(int_taxize$matched_name2,&quot; &quot;),length)==2]
+
+int_data&lt;-int_data %&gt;% filter(hummingbird %in% hum_keep) %&gt;% droplevels()
+
+#for formatted lavels
+for (x in levels(int_data$hummingbird)){
+  levels(int_data$hummingbird)[levels(int_data$hummingbird) %in% x]&lt;-int_taxize[int_taxize$submitted_name %in% x,&quot;matched_name2&quot;]  
+}
+
+int_data&lt;-droplevels(int_data)
+
+#only hummingbirds
+isclass&lt;-tax_name(query = levels(int_data$hummingbird), get = &quot;family&quot;, db = &quot;ncbi&quot;)</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Adelomyia melanogenys'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Aglaiocercus coelestis'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Amazilia franciae'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Atlapetes tricolor'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Boissonneaua flavescens'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Chlorostilbon melanorhynchus'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Coeligena lutetiae'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Coeligena torquata'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Coeligena wilsoni'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Colibri delphinae'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Doryfera ludovicae'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Ensifera ensifera'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Eriocnemis luciani'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Eriocnemis mosquera'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Eriocnemis nigrivestis'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Euphonia xanthogaster'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Eutoxeres aquila'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Heliangelus strophianus'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Heliodoxa imperatrix'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Heliodoxa jacula'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Heliodoxa rubinoides'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Henicorhina leucophrys'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Lafresnaya lafresnayi'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Metallura tyrianthina'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Ocreatus underwoodi'</code></pre>
+<pre><code>## Not found. Consider checking the spelling or alternate classification</code></pre>
+<pre><code>## No UID found for species 'Ocreatus underwoodi'!</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Ocreatus underwoodii'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Phaethornis striigularis'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Phaethornis yaruqui'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Phaethornis griseogularis'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Phaethornis malaris'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Phaethornis syrmatophorus'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Popelairia conversii'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Pterophanes cyanopterus'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Puma concolor'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Schistes geoffroyi'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Thalurania fannyi'</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Urosticte benjamini'</code></pre>
+<pre class="r"><code>troch_keep&lt;-isclass %&gt;% filter(family ==&quot;Trochilidae&quot;) %&gt;% .$query
+
+int_data&lt;-int_data %&gt;% filter(hummingbird %in% troch_keep) %&gt;% droplevels()</code></pre>
+</div>
+<div id="combine-with-camera-data" class="section level2">
+<h2>Combine with camera data</h2>
+<pre class="r"><code>int_data$Camera_ID&lt;-paste(int_data$site,int_data$waypoint,sep=&quot;_&quot;)
+tojoin&lt;-camera_gps %&gt;% select(Camera_ID,plant_field_name,lon,lat,elevation)
+int_gps&lt;-int_data %&gt;% left_join(tojoin,by=&quot;Camera_ID&quot;)</code></pre>
+<pre class="r"><code>#label events
+int_gps$ID=1:nrow(int_gps)
+
+#interactions within 20 seconds are condensced to the same event
+int_gps$timestamp&lt;-as.POSIXct(paste(int_gps$date,int_gps$time),format=&quot; %d/%m/%Y %H:%M:%S&quot;,tz=&quot;EST&quot;)
+
+difftimeall&lt;-function(x,ID){
+  print(x)
+  out&lt;-c()
+  if(length(x)==1){
+    out&lt;-NA
+    return(data.frame(ID=ID,time_since=out))
+  }
+    for(i in 2:length(x)){
+      out[i]&lt;-difftime(x[i],x[i-1],units=&quot;mins&quot;)
+    }
+  return(data.frame(ID=ID,time_since=out))
+}
+
+#remove observations within 1 minute
+too_close&lt;-int_gps %&gt;% group_by(Camera_ID) %&gt;% arrange(timestamp) %&gt;% do(difftimeall(.$timestamp,.$ID)) %&gt;% filter(time_since&lt;1)  </code></pre>
+<pre><code>## [1] &quot;2017-05-13 06:51:22 EST&quot; &quot;2017-05-14 06:41:33 EST&quot;
+## [3] &quot;2017-05-15 06:38:41 EST&quot;
+##  [1] &quot;2017-06-24 13:25:00 EST&quot; &quot;2017-06-24 13:54:01 EST&quot;
+##  [3] &quot;2017-06-24 14:04:55 EST&quot; &quot;2017-06-24 14:09:53 EST&quot;
+##  [5] &quot;2017-06-25 06:13:46 EST&quot; &quot;2017-06-25 07:16:24 EST&quot;
+##  [7] &quot;2017-06-25 09:16:09 EST&quot; &quot;2017-06-25 09:32:47 EST&quot;
+##  [9] &quot;2017-06-25 11:06:43 EST&quot; &quot;2017-06-25 11:09:47 EST&quot;
+## [11] &quot;2017-06-25 12:45:22 EST&quot; &quot;2017-06-25 12:47:30 EST&quot;
+## [13] &quot;2017-06-25 13:36:31 EST&quot; &quot;2017-06-25 14:25:50 EST&quot;
+## [15] &quot;2017-06-25 14:50:16 EST&quot; &quot;2017-06-26 06:20:26 EST&quot;
+## [17] &quot;2017-06-26 06:52:30 EST&quot; &quot;2017-06-26 06:59:21 EST&quot;
+## [19] &quot;2017-06-26 06:59:43 EST&quot; &quot;2017-06-26 08:32:21 EST&quot;
+## [21] &quot;2017-06-26 08:39:57 EST&quot; &quot;2017-06-26 09:29:48 EST&quot;
+## [23] &quot;2017-06-26 09:30:06 EST&quot; &quot;2017-06-26 11:01:32 EST&quot;
+## [25] &quot;2017-06-26 11:22:18 EST&quot; &quot;2017-06-26 13:14:31 EST&quot;
+## [27] &quot;2017-06-26 13:14:31 EST&quot; &quot;2017-06-26 17:31:59 EST&quot;
+## [29] &quot;2017-06-27 06:29:04 EST&quot; &quot;2017-06-27 07:38:22 EST&quot;
+## [31] &quot;2017-06-27 10:01:37 EST&quot; &quot;2017-06-27 10:53:06 EST&quot;
+## [33] &quot;2017-06-27 13:08:02 EST&quot; &quot;2017-06-27 13:10:49 EST&quot;
+## [35] &quot;2017-06-27 15:19:08 EST&quot; &quot;2017-06-27 16:42:36 EST&quot;
+## [37] &quot;2017-06-28 06:13:49 EST&quot; &quot;2017-06-28 06:55:06 EST&quot;
+## [39] &quot;2017-06-28 07:32:34 EST&quot; &quot;2017-06-28 08:34:37 EST&quot;
+## [41] &quot;2017-06-28 08:36:43 EST&quot; &quot;2017-06-28 09:53:10 EST&quot;
+## [43] &quot;2017-06-28 10:05:57 EST&quot; &quot;2017-06-28 11:17:52 EST&quot;
+## [45] &quot;2017-06-28 11:51:01 EST&quot; &quot;2017-06-28 12:18:20 EST&quot;
+## [1] &quot;2017-07-19 17:12:59 EST&quot;
+## [1] &quot;2017-07-21 14:05:51 EST&quot; &quot;2017-07-22 10:34:54 EST&quot;
+## [3] &quot;2017-07-23 17:43:36 EST&quot; &quot;2017-07-24 14:53:53 EST&quot;
+## [1] &quot;2017-05-12 14:11:44 EST&quot; &quot;2017-05-13 09:33:22 EST&quot;
+## [3] &quot;2017-05-13 11:05:59 EST&quot; &quot;2017-05-13 15:10:43 EST&quot;
+## [5] &quot;2017-05-13 16:40:02 EST&quot; &quot;2017-05-15 09:44:34 EST&quot;
+##  [1] &quot;2017-07-18 08:52:40 EST&quot; &quot;2017-07-18 09:26:25 EST&quot;
+##  [3] &quot;2017-07-18 10:00:19 EST&quot; &quot;2017-07-18 10:40:38 EST&quot;
+##  [5] &quot;2017-07-18 11:36:06 EST&quot; &quot;2017-07-18 12:30:12 EST&quot;
+##  [7] &quot;2017-07-18 13:51:00 EST&quot; &quot;2017-07-18 16:41:27 EST&quot;
+##  [9] &quot;2017-07-19 06:16:07 EST&quot; &quot;2017-07-19 06:43:21 EST&quot;
+## [11] &quot;2017-07-19 07:42:46 EST&quot; &quot;2017-07-19 08:58:43 EST&quot;
+## [13] &quot;2017-07-19 09:10:56 EST&quot; &quot;2017-07-19 09:39:08 EST&quot;
+## [15] &quot;2017-07-19 10:26:29 EST&quot; &quot;2017-07-19 11:09:15 EST&quot;
+## [17] &quot;2017-07-19 13:35:13 EST&quot; &quot;2017-07-19 13:49:28 EST&quot;
+## [19] &quot;2017-07-19 16:00:59 EST&quot; &quot;2017-07-19 17:30:37 EST&quot;
+## [21] &quot;2017-07-20 06:53:58 EST&quot; &quot;2017-07-20 08:02:54 EST&quot;
+## [23] &quot;2017-07-20 11:25:53 EST&quot; &quot;2017-07-20 13:00:03 EST&quot;
+## [25] &quot;2017-07-20 14:15:30 EST&quot; &quot;2017-07-20 15:27:20 EST&quot;
+## [27] &quot;2017-07-20 17:20:39 EST&quot; &quot;2017-07-21 07:15:02 EST&quot;
+## [29] &quot;2017-07-21 08:52:48 EST&quot; &quot;2017-07-21 10:05:48 EST&quot;
+## [31] &quot;2017-07-21 12:33:28 EST&quot;
+## [1] &quot;2017-07-21 14:36:39 EST&quot; &quot;2017-07-22 09:31:55 EST&quot;
+## [3] &quot;2017-07-22 13:50:56 EST&quot; &quot;2017-07-22 14:15:59 EST&quot;
+## [1] &quot;2017-05-14 09:05:10 EST&quot;
+##  [1] &quot;2017-11-07 06:16:36 EST&quot; &quot;2017-11-07 07:03:38 EST&quot;
+##  [3] &quot;2017-11-07 07:36:19 EST&quot; &quot;2017-11-07 08:13:33 EST&quot;
+##  [5] &quot;2017-11-07 08:28:19 EST&quot; &quot;2017-11-07 09:10:54 EST&quot;
+##  [7] &quot;2017-11-07 09:42:29 EST&quot; &quot;2017-11-07 10:23:00 EST&quot;
+##  [9] &quot;2017-11-07 11:06:14 EST&quot; &quot;2017-11-07 11:06:18 EST&quot;
+## [11] &quot;2017-11-07 11:48:00 EST&quot; &quot;2017-11-08 06:12:30 EST&quot;
+## [13] &quot;2017-11-08 06:50:26 EST&quot; &quot;2017-11-08 08:08:19 EST&quot;
+## [15] &quot;2017-11-08 09:18:09 EST&quot; &quot;2017-11-08 09:46:04 EST&quot;
+## [17] &quot;2017-11-08 10:31:10 EST&quot; &quot;2017-11-08 11:06:11 EST&quot;
+## [19] &quot;2017-11-08 11:39:40 EST&quot; &quot;2017-11-09 06:36:31 EST&quot;
+## [21] &quot;2017-11-09 08:05:20 EST&quot; &quot;2017-11-09 08:53:52 EST&quot;
+## [23] &quot;2017-11-09 09:41:24 EST&quot; &quot;2017-11-09 10:45:56 EST&quot;
+## [25] &quot;2017-11-09 12:07:32 EST&quot; &quot;2017-11-09 12:29:21 EST&quot;
+## [27] &quot;2017-11-09 12:59:14 EST&quot; &quot;2017-11-09 14:00:41 EST&quot;
+## [29] &quot;2047-11-07 08:38:09 EST&quot;
+## [1] &quot;2017-06-17 10:25:35 EST&quot; &quot;2017-06-17 16:24:06 EST&quot;
+## [1] &quot;2017-06-25 07:26:37 EST&quot; &quot;2017-06-25 11:11:13 EST&quot;
+## [3] &quot;2017-06-25 12:41:44 EST&quot; &quot;2017-06-25 15:02:17 EST&quot;
+## [5] &quot;2017-06-26 06:31:19 EST&quot; &quot;2017-06-26 12:16:07 EST&quot;
+## [7] &quot;2017-06-27 06:52:52 EST&quot;
+##  [1] &quot;2017-07-18 11:50:29 EST&quot; &quot;2017-07-19 07:01:18 EST&quot;
+##  [3] &quot;2017-07-19 16:54:36 EST&quot; &quot;2017-07-20 07:44:02 EST&quot;
+##  [5] &quot;2017-07-20 08:11:24 EST&quot; &quot;2017-07-20 09:10:36 EST&quot;
+##  [7] &quot;2017-07-20 10:11:15 EST&quot; &quot;2017-07-20 10:37:01 EST&quot;
+##  [9] &quot;2017-07-20 11:18:41 EST&quot; &quot;2017-07-20 11:29:20 EST&quot;
+## [11] &quot;2017-07-20 13:13:44 EST&quot; &quot;2017-07-20 13:14:16 EST&quot;
+## [13] &quot;2017-07-20 13:51:33 EST&quot; &quot;2017-07-20 14:38:24 EST&quot;
+## [15] &quot;2017-07-20 17:35:15 EST&quot; &quot;2017-07-20 17:51:36 EST&quot;
+## [17] &quot;2017-07-20 18:16:42 EST&quot; &quot;2017-07-21 06:43:16 EST&quot;
+## [19] &quot;2017-07-21 07:36:25 EST&quot; &quot;2017-07-21 08:24:09 EST&quot;
+## [21] &quot;2017-07-21 09:07:56 EST&quot; &quot;2017-07-21 09:38:30 EST&quot;
+## [23] &quot;2017-07-21 10:07:32 EST&quot; &quot;2017-07-21 10:51:47 EST&quot;
+## [25] &quot;2017-07-21 11:46:25 EST&quot;
+## [1] &quot;2017-05-13 14:55:28 EST&quot; &quot;2017-05-14 14:21:40 EST&quot;
+## [1] &quot;2017-06-26 12:37:32 EST&quot; &quot;2017-06-27 06:41:05 EST&quot;
+## [3] &quot;2017-06-27 07:50:37 EST&quot; &quot;2017-06-27 08:27:34 EST&quot;
+## [5] &quot;2017-06-27 10:45:30 EST&quot; &quot;2017-06-27 12:14:38 EST&quot;
+## [7] &quot;2017-06-27 13:28:58 EST&quot; &quot;2017-06-27 14:52:57 EST&quot;
+## [9] &quot;2017-06-27 17:13:54 EST&quot;
+## [1] &quot;2017-07-18 16:52:27 EST&quot; &quot;2017-07-18 16:52:27 EST&quot;
+## [3] &quot;2017-07-19 07:04:41 EST&quot; &quot;2017-07-19 07:04:41 EST&quot;
+## [5] &quot;2017-07-19 15:13:31 EST&quot; &quot;2017-07-19 15:13:31 EST&quot;
+## [7] &quot;2017-07-20 15:55:14 EST&quot; &quot;2017-07-20 15:55:14 EST&quot;
+##  [1] &quot;2017-07-21 14:22:06 EST&quot; &quot;2017-07-22 06:18:44 EST&quot;
+##  [3] &quot;2017-07-22 06:36:35 EST&quot; &quot;2017-07-22 08:04:27 EST&quot;
+##  [5] &quot;2017-07-22 12:56:50 EST&quot; &quot;2017-07-22 15:04:59 EST&quot;
+##  [7] &quot;2017-07-22 16:49:33 EST&quot; &quot;2017-07-23 06:25:48 EST&quot;
+##  [9] &quot;2017-07-23 14:38:31 EST&quot; &quot;2017-07-24 06:47:26 EST&quot;
+## [11] &quot;2017-07-24 09:21:27 EST&quot;
+##  [1] &quot;2017-05-13 07:04:05 EST&quot; &quot;2017-05-13 08:25:28 EST&quot;
+##  [3] &quot;2017-05-13 08:51:07 EST&quot; &quot;2017-05-13 10:45:07 EST&quot;
+##  [5] &quot;2017-05-13 11:56:32 EST&quot; &quot;2017-05-14 07:30:15 EST&quot;
+##  [7] &quot;2017-05-14 08:26:46 EST&quot; &quot;2017-05-14 08:43:32 EST&quot;
+##  [9] &quot;2017-05-14 13:14:45 EST&quot; &quot;2017-05-15 08:33:28 EST&quot;
+## [11] &quot;2017-05-15 11:58:04 EST&quot; &quot;2017-05-16 07:22:56 EST&quot;
+## [13] &quot;2017-05-16 09:40:04 EST&quot;
+## [1] &quot;2017-06-17 06:27:52 EST&quot; &quot;2017-06-17 06:33:25 EST&quot;
+## [3] &quot;2017-06-18 06:49:14 EST&quot; &quot;2017-06-18 09:29:58 EST&quot;
+## [5] &quot;2017-06-18 16:51:15 EST&quot; &quot;2017-06-19 06:41:31 EST&quot;
+## [7] &quot;2017-06-20 07:24:38 EST&quot;
+##  [1] &quot;2017-06-25 09:30:28 EST&quot; &quot;2017-06-25 09:35:12 EST&quot;
+##  [3] &quot;2017-06-25 10:28:48 EST&quot; &quot;2017-06-25 10:29:10 EST&quot;
+##  [5] &quot;2017-06-25 10:29:51 EST&quot; &quot;2017-06-25 10:32:22 EST&quot;
+##  [7] &quot;2017-06-25 11:08:53 EST&quot; &quot;2017-06-25 11:31:24 EST&quot;
+##  [9] &quot;2017-06-25 11:31:46 EST&quot; &quot;2017-06-25 11:41:55 EST&quot;
+## [11] &quot;2017-06-25 12:47:37 EST&quot; &quot;2017-06-25 12:49:39 EST&quot;
+## [13] &quot;2017-06-25 13:31:39 EST&quot; &quot;2017-06-25 14:27:18 EST&quot;
+## [15] &quot;2017-06-25 14:38:40 EST&quot; &quot;2017-06-25 14:56:38 EST&quot;
+## [17] &quot;2017-06-25 15:39:54 EST&quot; &quot;2017-06-26 08:35:03 EST&quot;
+## [19] &quot;2017-06-26 10:48:25 EST&quot; &quot;2017-06-26 11:53:33 EST&quot;
+## [21] &quot;2017-06-26 12:10:59 EST&quot; &quot;2017-06-26 12:54:34 EST&quot;
+## [23] &quot;2017-06-26 12:54:56 EST&quot; &quot;2017-06-26 12:55:19 EST&quot;
+## [25] &quot;2017-06-26 12:55:41 EST&quot; &quot;2017-06-26 13:16:44 EST&quot;
+## [27] &quot;2017-06-26 13:53:17 EST&quot; &quot;2017-06-26 14:47:15 EST&quot;
+## [29] &quot;2017-06-26 14:50:20 EST&quot; &quot;2017-06-26 16:47:40 EST&quot;
+## [31] &quot;2017-06-26 17:13:34 EST&quot; &quot;2017-06-26 17:13:57 EST&quot;
+## [33] &quot;2017-06-26 17:34:11 EST&quot; &quot;2017-06-27 10:03:30 EST&quot;
+## [35] &quot;2017-06-27 12:47:59 EST&quot; &quot;2017-06-27 13:09:55 EST&quot;
+## [37] &quot;2017-06-27 13:12:30 EST&quot; &quot;2017-06-27 15:21:22 EST&quot;
+## [39] &quot;2017-06-27 17:25:12 EST&quot; &quot;2017-06-28 08:02:20 EST&quot;
+## [41] &quot;2017-06-28 08:36:07 EST&quot; &quot;2017-06-28 10:08:12 EST&quot;
+## [43] &quot;2017-06-28 11:53:24 EST&quot; &quot;2017-06-28 11:53:24 EST&quot;
+##  [1] &quot;2017-07-21 12:26:26 EST&quot; &quot;2017-07-21 12:27:56 EST&quot;
+##  [3] &quot;2017-07-21 12:35:55 EST&quot; &quot;2017-07-21 12:42:47 EST&quot;
+##  [5] &quot;2017-07-21 12:43:12 EST&quot; &quot;2017-07-21 13:59:21 EST&quot;
+##  [7] &quot;2017-07-21 17:25:34 EST&quot; &quot;2017-07-22 11:01:06 EST&quot;
+##  [9] &quot;2017-07-22 11:30:01 EST&quot; &quot;2017-07-22 16:01:37 EST&quot;
+## [11] &quot;2017-07-23 15:44:58 EST&quot;
+## [1] &quot;2017-05-14 10:41:19 EST&quot; &quot;2017-05-14 11:20:33 EST&quot;
+## [1] &quot;2017-06-17 13:25:59 EST&quot; &quot;2017-06-17 15:36:39 EST&quot;
+## [3] &quot;2017-06-18 06:50:31 EST&quot; &quot;2017-06-19 06:26:06 EST&quot;
+## [5] &quot;2017-06-19 14:29:12 EST&quot;
+## [1] &quot;2017-06-25 10:56:47 EST&quot; &quot;2017-06-25 11:11:29 EST&quot;
+## [1] &quot;2017-07-21 07:59:22 EST&quot;
+## [1] &quot;2017-07-21 16:18:56 EST&quot; &quot;2017-07-22 09:35:53 EST&quot;
+## [1] &quot;2017-03-16 10:44:10 EST&quot;
+## [1] &quot;2017-03-18 08:14:16 EST&quot; &quot;2017-03-19 09:03:30 EST&quot;
+## [1] &quot;2017-03-15 17:39:37 EST&quot;
+## [1] &quot;2017-03-16 15:07:14 EST&quot;
+## [1] &quot;2017-03-20 15:25:25 EST&quot;
+## [1] NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [24] NA
+##  [1] NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA
+## [1] NA
+## [1] NA NA NA NA NA NA NA NA
+## [1] NA NA
+## [1] NA NA NA
+## [1] NA NA NA NA
+## [1] NA NA NA NA NA
+## [1] NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [1] NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [24] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [47] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [70] NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA
+## [1] NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [1] NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [24] NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [24] NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [1] NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [24] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [47] NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+##   [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [24] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [47] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [70] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [93] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [116] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [139] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [162] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [185] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [208] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [231] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [254] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [277] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [300] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [323] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [346] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [369] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [392] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [415] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [438] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [461] NA NA NA NA NA NA NA
+## [1] NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA
+## [1] NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [24] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+##   [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [24] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [47] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [70] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [93] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [116] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [139] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [162] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [185] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [208] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [231] NA NA NA NA NA
+## [1] NA NA
+## [1] NA NA NA
+## [1] NA
+## [1] NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [1] NA NA NA NA NA NA NA
+## [1] NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [24] NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [1] NA NA NA NA
+## [1] NA
+## [1] NA NA
+## [1] NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [1] &quot;2017-03-23 15:25:38 EST&quot; NA                       
+## [1] &quot;2017-03-23 15:27:59 EST&quot;
+## [1] NA
+## [1] &quot;2017-03-22 15:31:29 EST&quot; &quot;2017-03-23 13:16:24 EST&quot;
+## [1] &quot;2017-04-16 08:33:20 EST&quot;
+## [1] &quot;2017-05-16 12:58:53 EST&quot; &quot;2017-05-17 06:49:32 EST&quot;
+## [1] &quot;2017-07-22 10:04:02 EST&quot;
+## [1] &quot;2017-04-13 08:13:49 EST&quot;
+## [1] &quot;2017-07-24 11:40:27 EST&quot; &quot;2017-07-24 11:40:28 EST&quot;
+## [3] &quot;2017-07-25 08:51:35 EST&quot;
+## [1] &quot;2017-05-13 13:07:18 EST&quot; NA                       
+## [3] NA                        NA                       
+## [5] NA                        NA                       
+## [7] NA                        NA                       
+## [9] NA                       
+## [1] &quot;2017-07-24 08:32:32 EST&quot;
+## [1] &quot;2017-07-24 14:43:52 EST&quot; &quot;2017-07-24 14:44:01 EST&quot;
+## [3] &quot;2017-07-24 14:44:16 EST&quot;
+## [1] &quot;2017-04-13 08:36:28 EST&quot;
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [1] &quot;2017-07-26 06:23:40 EST&quot;
+## [1] &quot;2017-04-14 16:21:33 EST&quot;
+## [1] NA
+## [1] &quot;2017-07-19 15:03:53 EST&quot; &quot;2017-07-20 14:45:20 EST&quot;
+## [3] &quot;2017-07-20 15:40:05 EST&quot; &quot;2017-07-21 16:48:20 EST&quot;
+## [5] &quot;2017-07-22 11:09:41 EST&quot; &quot;2017-07-22 13:19:11 EST&quot;
+## [1] &quot;2017-07-26 07:00:17 EST&quot; &quot;2017-07-26 07:00:27 EST&quot;
+## [1] &quot;2017-05-14 13:34:40 EST&quot;
+## [1] &quot;2017-07-21 06:59:57 EST&quot; &quot;2017-07-21 10:14:58 EST&quot;
+## [3] &quot;2017-07-21 15:08:07 EST&quot;
+## [1] &quot;2017-05-13 15:56:17 EST&quot; &quot;2017-05-13 16:21:41 EST&quot;
+## [1] &quot;2017-06-21 08:30:29 EST&quot; &quot;2017-06-22 07:28:08 EST&quot;
+## [1] &quot;2017-06-23 15:52:27 EST&quot; &quot;2017-06-23 15:52:50 EST&quot;
+## [3] &quot;2017-06-24 14:56:00 EST&quot; &quot;2017-06-24 15:00:29 EST&quot;
+## [5] &quot;2017-06-24 15:00:50 EST&quot; &quot;2017-06-24 16:54:44 EST&quot;
+## [7] &quot;2017-06-25 16:28:12 EST&quot; &quot;2017-06-26 13:52:35 EST&quot;
+## [1] &quot;2017-07-21 07:03:10 EST&quot; &quot;2017-07-21 12:49:13 EST&quot;
+## [1] &quot;2017-06-22 16:23:41 EST&quot; &quot;2017-06-22 16:23:41 EST&quot;
+## [3] &quot;2017-06-22 16:23:41 EST&quot; &quot;2017-06-22 16:23:41 EST&quot;
+##  [1] &quot;2017-06-23 13:15:34 EST&quot; &quot;2017-06-23 15:32:19 EST&quot;
+##  [3] &quot;2017-06-24 07:10:53 EST&quot; &quot;2017-06-24 07:37:44 EST&quot;
+##  [5] &quot;2017-06-24 09:53:04 EST&quot; &quot;2017-06-24 11:19:20 EST&quot;
+##  [7] &quot;2017-06-24 12:00:00 EST&quot; &quot;2017-06-24 16:54:06 EST&quot;
+##  [9] &quot;2017-06-25 17:31:08 EST&quot; &quot;2017-06-26 07:16:33 EST&quot;
+## [11] &quot;2017-06-26 07:16:55 EST&quot; &quot;2017-06-26 07:17:26 EST&quot;
+## [13] &quot;2017-06-26 08:31:48 EST&quot; &quot;2017-06-26 09:32:21 EST&quot;
+## [15] &quot;2017-06-26 09:32:21 EST&quot; &quot;2017-06-26 10:47:29 EST&quot;
+## [17] &quot;2017-06-26 12:43:17 EST&quot; &quot;2017-06-26 13:29:48 EST&quot;
+## [19] &quot;2017-06-26 15:14:52 EST&quot; &quot;2017-06-26 15:50:13 EST&quot;
+## [21] &quot;2017-06-27 06:56:52 EST&quot; &quot;2017-06-27 07:37:56 EST&quot;
+## [1] &quot;2017-06-20 08:22:01 EST&quot; &quot;2017-06-20 11:55:58 EST&quot;
+## [3] &quot;2017-06-21 10:31:49 EST&quot; &quot;2017-06-21 15:03:26 EST&quot;
+## [5] &quot;2017-06-22 10:18:54 EST&quot; &quot;2017-06-23 09:23:07 EST&quot;
+## [7] &quot;2017-06-23 11:21:31 EST&quot;
+##  [1] &quot;2017-05-13 11:28:54 EST&quot; &quot;2017-05-13 17:26:26 EST&quot;
+##  [3] &quot;2017-05-14 06:45:27 EST&quot; &quot;2017-05-14 13:24:12 EST&quot;
+##  [5] &quot;2017-05-14 13:24:39 EST&quot; &quot;2017-05-14 13:24:58 EST&quot;
+##  [7] &quot;2017-05-14 15:37:13 EST&quot; &quot;2017-05-14 17:39:52 EST&quot;
+##  [9] &quot;2017-05-15 06:24:06 EST&quot; &quot;2017-05-15 06:44:24 EST&quot;
+## [11] &quot;2017-05-15 07:25:32 EST&quot; &quot;2017-05-15 07:38:53 EST&quot;
+## [13] &quot;2017-05-15 11:21:54 EST&quot; &quot;2017-05-15 12:46:42 EST&quot;
+## [15] &quot;2017-05-16 08:16:51 EST&quot; &quot;2017-05-16 08:17:04 EST&quot;
+## [17] &quot;2017-05-16 08:56:48 EST&quot; &quot;2017-05-16 09:40:54 EST&quot;
+## [19] &quot;2017-05-16 14:43:57 EST&quot;
+##  [1] &quot;2017-06-19 17:17:54 EST&quot; &quot;2017-06-19 17:17:54 EST&quot;
+##  [3] &quot;2017-06-20 06:56:04 EST&quot; &quot;2017-06-20 06:56:04 EST&quot;
+##  [5] &quot;2017-06-20 07:48:02 EST&quot; &quot;2017-06-20 07:48:02 EST&quot;
+##  [7] &quot;2017-06-20 08:21:37 EST&quot; &quot;2017-06-20 08:21:37 EST&quot;
+##  [9] &quot;2017-06-20 10:23:20 EST&quot; &quot;2017-06-20 10:23:20 EST&quot;
+## [11] &quot;2017-06-20 16:33:38 EST&quot; &quot;2017-06-20 16:33:38 EST&quot;
+## [13] &quot;2017-06-21 07:16:25 EST&quot; &quot;2017-06-21 07:16:25 EST&quot;
+## [15] &quot;2017-06-21 08:33:45 EST&quot; &quot;2017-06-21 08:33:45 EST&quot;
+## [17] &quot;2017-06-21 10:04:55 EST&quot; &quot;2017-06-21 10:04:55 EST&quot;
+## [19] &quot;2017-06-21 12:57:30 EST&quot; &quot;2017-06-21 12:57:30 EST&quot;
+## [21] &quot;2017-06-21 15:18:21 EST&quot; &quot;2017-06-21 15:18:21 EST&quot;
+## [23] &quot;2017-06-22 07:20:02 EST&quot; &quot;2017-06-22 07:20:02 EST&quot;
+## [25] &quot;2017-06-22 10:18:20 EST&quot; &quot;2017-06-22 10:18:20 EST&quot;
+## [27] &quot;2017-06-23 07:15:39 EST&quot; &quot;2017-06-23 07:15:39 EST&quot;
+## [29] &quot;2017-06-23 08:17:24 EST&quot; &quot;2017-06-23 08:17:24 EST&quot;
+## [31] &quot;2017-06-23 09:22:47 EST&quot; &quot;2017-06-23 09:22:47 EST&quot;
+## [33] &quot;2017-06-23 09:22:47 EST&quot; &quot;2017-06-23 09:22:47 EST&quot;
+## [35] &quot;2017-06-23 11:09:48 EST&quot; &quot;2017-06-23 11:09:48 EST&quot;
+##  [1] &quot;2017-06-23 17:16:32 EST&quot; &quot;2017-06-24 07:08:23 EST&quot;
+##  [3] &quot;2017-06-24 08:29:00 EST&quot; &quot;2017-06-24 10:23:09 EST&quot;
+##  [5] &quot;2017-06-25 07:23:11 EST&quot; &quot;2017-06-25 08:24:51 EST&quot;
+##  [7] &quot;2017-06-25 09:57:12 EST&quot; &quot;2017-06-25 13:42:31 EST&quot;
+##  [9] &quot;2017-06-26 07:10:06 EST&quot; &quot;2017-06-26 07:25:53 EST&quot;
+## [11] &quot;2017-06-26 08:19:12 EST&quot; &quot;2017-06-26 11:07:56 EST&quot;
+## [13] &quot;2017-06-26 15:00:14 EST&quot;
+##  [1] &quot;2017-06-16 17:56:43 EST&quot; &quot;2017-06-16 17:56:43 EST&quot;
+##  [3] &quot;2017-06-17 16:11:14 EST&quot; &quot;2017-06-17 16:11:14 EST&quot;
+##  [5] &quot;2017-06-18 16:29:32 EST&quot; &quot;2017-06-18 16:29:32 EST&quot;
+##  [7] &quot;2017-06-18 16:29:33 EST&quot; &quot;2017-06-18 16:29:33 EST&quot;
+##  [9] NA                        NA                       
+##  [1] &quot;2017-07-18 10:30:34 EST&quot; &quot;2017-07-18 10:30:46 EST&quot;
+##  [3] &quot;2017-07-18 10:30:59 EST&quot; &quot;2017-07-18 12:14:35 EST&quot;
+##  [5] &quot;2017-07-18 12:14:47 EST&quot; &quot;2017-07-18 12:14:57 EST&quot;
+##  [7] &quot;2017-07-18 13:42:40 EST&quot; &quot;2017-07-18 13:48:49 EST&quot;
+##  [9] &quot;2017-07-18 13:49:04 EST&quot; &quot;2017-07-18 13:49:15 EST&quot;
+## [11] &quot;2017-07-18 13:53:55 EST&quot; &quot;2017-07-18 13:54:03 EST&quot;
+## [13] &quot;2017-07-18 13:56:27 EST&quot; &quot;2017-07-18 14:02:37 EST&quot;
+## [15] &quot;2017-07-18 14:03:54 EST&quot; &quot;2017-07-18 14:04:01 EST&quot;
+## [17] &quot;2017-07-18 14:04:17 EST&quot; &quot;2017-07-18 14:04:26 EST&quot;
+## [19] &quot;2017-07-18 14:09:08 EST&quot; &quot;2017-07-18 14:09:19 EST&quot;
+## [21] &quot;2017-07-18 14:09:23 EST&quot; &quot;2017-07-18 14:25:50 EST&quot;
+## [23] &quot;2017-07-18 15:20:10 EST&quot; &quot;2017-07-18 15:20:20 EST&quot;
+## [25] &quot;2017-07-18 15:21:05 EST&quot; &quot;2017-07-18 15:21:16 EST&quot;
+## [27] &quot;2017-07-18 15:21:47 EST&quot; &quot;2017-07-18 15:40:04 EST&quot;
+## [29] &quot;2017-07-18 16:17:14 EST&quot; &quot;2017-07-18 16:17:24 EST&quot;
+## [31] &quot;2017-07-18 16:17:39 EST&quot; &quot;2017-07-18 16:34:06 EST&quot;
+## [33] &quot;2017-07-18 16:52:35 EST&quot; &quot;2017-07-18 16:52:43 EST&quot;
+## [35] &quot;2017-07-18 17:25:33 EST&quot; &quot;2017-07-19 08:44:02 EST&quot;
+## [37] &quot;2017-07-19 08:44:18 EST&quot; &quot;2017-07-19 09:44:26 EST&quot;
+## [39] &quot;2017-07-19 09:44:36 EST&quot; &quot;2017-07-19 09:45:06 EST&quot;
+## [41] &quot;2017-07-19 09:45:11 EST&quot; &quot;2017-07-19 10:39:56 EST&quot;
+## [43] &quot;2017-07-19 10:40:05 EST&quot; &quot;2017-07-19 10:50:33 EST&quot;
+## [45] &quot;2017-07-19 10:50:53 EST&quot; &quot;2017-07-19 12:33:14 EST&quot;
+## [47] &quot;2017-07-19 12:33:28 EST&quot; &quot;2017-07-19 12:51:31 EST&quot;
+## [49] &quot;2017-07-19 13:46:36 EST&quot; &quot;2017-07-19 13:55:12 EST&quot;
+## [51] &quot;2017-07-19 14:16:43 EST&quot; &quot;2017-07-19 14:16:52 EST&quot;
+## [53] &quot;2017-07-19 14:28:58 EST&quot; &quot;2017-07-19 14:41:28 EST&quot;
+## [55] &quot;2017-07-20 07:19:27 EST&quot; &quot;2017-07-20 07:19:28 EST&quot;
+## [57] &quot;2017-07-20 08:15:52 EST&quot; &quot;2017-07-20 08:16:00 EST&quot;
+## [59] &quot;2017-07-20 08:16:09 EST&quot; &quot;2017-07-20 09:40:13 EST&quot;
+## [61] &quot;2017-07-20 10:21:28 EST&quot; &quot;2017-07-20 11:03:26 EST&quot;
+## [63] &quot;2017-07-20 12:22:02 EST&quot; &quot;2017-07-20 13:10:04 EST&quot;
+## [65] &quot;2017-07-20 13:10:23 EST&quot; &quot;2017-07-20 13:10:43 EST&quot;
+## [67] &quot;2017-07-20 13:11:33 EST&quot; &quot;2017-07-20 13:11:42 EST&quot;
+## [69] &quot;2017-07-20 13:29:49 EST&quot; &quot;2017-07-20 13:30:00 EST&quot;
+## [71] &quot;2017-07-20 14:30:58 EST&quot; &quot;2017-07-20 14:31:13 EST&quot;
+## [73] &quot;2017-07-20 14:49:26 EST&quot; &quot;2017-07-20 14:54:49 EST&quot;
+## [75] &quot;2017-07-20 14:59:14 EST&quot; &quot;2017-07-20 16:22:17 EST&quot;
+## [77] &quot;2017-07-20 17:21:00 EST&quot; &quot;2017-07-20 17:21:11 EST&quot;
+## [79] &quot;2017-07-20 18:05:31 EST&quot; &quot;2017-07-20 18:07:53 EST&quot;
+## [81] &quot;2017-07-20 18:11:23 EST&quot; &quot;2017-07-21 07:59:20 EST&quot;
+## [83] &quot;2017-07-21 07:59:30 EST&quot; &quot;2017-07-21 09:03:56 EST&quot;
+## [85] &quot;2017-07-21 09:03:58 EST&quot;
+## [1] &quot;2017-07-22 13:13:39 EST&quot; &quot;2017-07-23 15:38:58 EST&quot;
+## [3] &quot;2017-07-23 15:39:00 EST&quot; &quot;2017-07-24 08:03:12 EST&quot;
+## [5] &quot;2017-07-24 08:03:15 EST&quot; &quot;2017-07-24 15:46:14 EST&quot;
+## [7] &quot;2017-07-24 17:42:40 EST&quot; &quot;2017-07-25 08:12:02 EST&quot;
+## [1] &quot;2017-06-17 13:52:52 EST&quot;
+##  [1] &quot;2017-07-18 11:14:36 EST&quot; &quot;2017-07-18 11:14:59 EST&quot;
+##  [3] &quot;2017-07-18 11:15:13 EST&quot; &quot;2017-07-18 11:15:21 EST&quot;
+##  [5] &quot;2017-07-18 11:15:39 EST&quot; &quot;2017-07-18 11:27:13 EST&quot;
+##  [7] &quot;2017-07-18 11:27:30 EST&quot; &quot;2017-07-18 11:29:03 EST&quot;
+##  [9] &quot;2017-07-18 11:29:31 EST&quot; &quot;2017-07-18 11:30:05 EST&quot;
+## [11] &quot;2017-07-18 11:30:25 EST&quot; &quot;2017-07-18 11:32:36 EST&quot;
+## [13] &quot;2017-07-18 11:40:20 EST&quot; &quot;2017-07-18 11:40:41 EST&quot;
+## [15] &quot;2017-07-18 11:51:55 EST&quot; &quot;2017-07-18 11:52:35 EST&quot;
+## [17] &quot;2017-07-18 12:05:31 EST&quot; &quot;2017-07-18 12:05:38 EST&quot;
+## [19] &quot;2017-07-18 12:05:44 EST&quot; &quot;2017-07-18 12:19:57 EST&quot;
+## [21] &quot;2017-07-18 12:20:04 EST&quot; &quot;2017-07-18 12:20:26 EST&quot;
+## [23] &quot;2017-07-18 12:20:41 EST&quot; &quot;2017-07-18 12:21:09 EST&quot;
+## [25] &quot;2017-07-18 12:22:48 EST&quot; &quot;2017-07-18 12:23:05 EST&quot;
+## [27] &quot;2017-07-18 12:24:09 EST&quot; &quot;2017-07-18 12:35:54 EST&quot;
+## [29] &quot;2017-07-18 12:54:05 EST&quot; &quot;2017-07-18 12:56:28 EST&quot;
+## [31] &quot;2017-07-18 12:56:47 EST&quot; &quot;2017-07-18 13:10:58 EST&quot;
+## [33] &quot;2017-07-18 13:11:06 EST&quot; &quot;2017-07-18 13:30:07 EST&quot;
+## [35] &quot;2017-07-18 13:30:28 EST&quot; &quot;2017-07-18 13:31:00 EST&quot;
+## [37] &quot;2017-07-18 13:31:25 EST&quot; &quot;2017-07-18 13:41:44 EST&quot;
+## [39] &quot;2017-07-18 13:42:24 EST&quot; &quot;2017-07-18 13:50:24 EST&quot;
+## [41] &quot;2017-07-18 13:50:47 EST&quot; &quot;2017-07-18 13:52:14 EST&quot;
+## [43] &quot;2017-07-18 13:57:15 EST&quot; &quot;2017-07-18 13:57:37 EST&quot;
+## [45] &quot;2017-07-18 13:57:57 EST&quot; &quot;2017-07-18 13:58:08 EST&quot;
+## [47] &quot;2017-07-18 14:10:23 EST&quot; &quot;2017-07-18 14:10:28 EST&quot;
+## [49] &quot;2017-07-18 14:30:58 EST&quot; &quot;2017-07-18 14:31:03 EST&quot;
+## [51] &quot;2017-07-18 14:31:22 EST&quot; &quot;2017-07-18 14:31:42 EST&quot;
+## [53] &quot;2017-07-18 14:44:50 EST&quot; &quot;2017-07-18 14:47:36 EST&quot;
+## [55] &quot;2017-07-18 14:49:00 EST&quot; &quot;2017-07-18 14:49:17 EST&quot;
+## [57] &quot;2017-07-18 14:49:40 EST&quot; &quot;2017-07-18 14:51:14 EST&quot;
+## [59] &quot;2017-07-18 14:51:34 EST&quot; &quot;2017-07-18 14:51:55 EST&quot;
+## [61] &quot;2017-07-18 14:52:17 EST&quot; &quot;2017-07-18 14:52:24 EST&quot;
+## [63] &quot;2017-07-18 15:25:23 EST&quot; &quot;2017-07-18 15:29:47 EST&quot;
+## [65] &quot;2017-07-18 15:30:00 EST&quot; &quot;2017-07-18 15:30:17 EST&quot;
+## [67] &quot;2017-07-18 15:35:09 EST&quot; &quot;2017-07-18 15:36:29 EST&quot;
+## [69] &quot;2017-07-18 15:36:43 EST&quot; &quot;2017-07-18 15:37:02 EST&quot;
+## [71] &quot;2017-07-18 15:46:05 EST&quot; &quot;2017-07-18 15:46:35 EST&quot;
+## [73] &quot;2017-07-18 15:48:25 EST&quot; &quot;2017-07-18 15:48:50 EST&quot;
+## [75] &quot;2017-07-18 15:49:06 EST&quot; &quot;2017-07-18 15:49:28 EST&quot;
+## [77] &quot;2017-07-18 15:49:52 EST&quot; &quot;2017-07-18 15:53:34 EST&quot;
+## [79] &quot;2017-07-18 15:53:42 EST&quot; &quot;2017-07-18 15:59:13 EST&quot;
+## [81] &quot;2017-07-18 16:04:46 EST&quot; &quot;2017-07-18 16:05:01 EST&quot;
+## [83] &quot;2017-07-18 16:53:33 EST&quot; &quot;2017-07-18 16:53:59 EST&quot;
+## [85] &quot;2017-07-18 16:54:18 EST&quot; &quot;2017-07-18 16:57:32 EST&quot;
+## [87] &quot;2017-07-18 16:57:39 EST&quot;
+## [1] &quot;2017-07-19 12:50:12 EST&quot; &quot;2017-07-19 12:50:14 EST&quot;
+## [3] &quot;2017-07-19 14:16:23 EST&quot;
+##  [1] &quot;2017-07-21 14:59:40 EST&quot; &quot;2017-07-22 06:40:23 EST&quot;
+##  [3] &quot;2017-07-22 08:47:32 EST&quot; &quot;2017-07-22 08:47:36 EST&quot;
+##  [5] &quot;2017-07-22 10:04:40 EST&quot; &quot;2017-07-22 10:32:33 EST&quot;
+##  [7] &quot;2017-07-22 10:45:41 EST&quot; &quot;2017-07-22 12:08:21 EST&quot;
+##  [9] &quot;2017-07-22 13:13:17 EST&quot; &quot;2017-07-22 13:37:49 EST&quot;
+## [11] &quot;2017-07-22 13:37:51 EST&quot; &quot;2017-07-22 14:10:42 EST&quot;
+## [13] &quot;2017-07-22 16:22:11 EST&quot; &quot;2017-07-23 08:38:24 EST&quot;
+## [15] &quot;2017-07-23 08:44:41 EST&quot; &quot;2017-07-23 08:44:43 EST&quot;
+## [17] &quot;2017-07-23 08:52:13 EST&quot; &quot;2017-07-23 09:21:58 EST&quot;
+## [19] &quot;2017-07-23 09:22:00 EST&quot; &quot;2017-07-23 09:33:24 EST&quot;
+## [21] &quot;2017-07-23 10:29:49 EST&quot; &quot;2017-07-23 10:29:59 EST&quot;
+## [23] &quot;2017-07-23 14:00:45 EST&quot; &quot;2017-07-23 15:03:29 EST&quot;
+## [25] &quot;2017-07-23 15:03:35 EST&quot; &quot;2017-07-24 07:50:57 EST&quot;
+## [27] &quot;2017-07-24 07:51:10 EST&quot; &quot;2017-07-24 09:57:12 EST&quot;
+## [29] &quot;2017-07-24 09:57:16 EST&quot; &quot;2017-07-24 12:00:41 EST&quot;
+## [31] &quot;2017-07-24 14:40:15 EST&quot; &quot;2017-07-24 14:40:18 EST&quot;
+## [33] &quot;2017-07-24 15:32:03 EST&quot; &quot;2017-07-25 07:29:44 EST&quot;
+## [35] &quot;2017-07-25 08:25:26 EST&quot;
+##  [1] &quot;2017-06-16 16:07:16 EST&quot; &quot;2017-06-16 16:07:16 EST&quot;
+##  [3] &quot;2017-06-16 16:07:30 EST&quot; &quot;2017-06-16 16:07:30 EST&quot;
+##  [5] &quot;2017-06-16 17:49:46 EST&quot; &quot;2017-06-16 17:49:46 EST&quot;
+##  [7] &quot;2017-06-17 17:04:48 EST&quot; &quot;2017-06-17 17:04:48 EST&quot;
+##  [9] &quot;2017-06-17 17:04:51 EST&quot; &quot;2017-06-17 17:04:51 EST&quot;
+##  [1] &quot;2017-07-22 06:52:46 EST&quot; &quot;2017-07-22 09:10:22 EST&quot;
+##  [3] &quot;2017-07-22 09:10:23 EST&quot; &quot;2017-07-22 09:10:24 EST&quot;
+##  [5] &quot;2017-07-22 13:53:55 EST&quot; &quot;2017-07-23 07:07:34 EST&quot;
+##  [7] &quot;2017-07-23 07:20:43 EST&quot; &quot;2017-07-23 07:20:45 EST&quot;
+##  [9] &quot;2017-07-23 12:18:14 EST&quot; &quot;2017-07-23 12:18:18 EST&quot;
+## [11] &quot;2017-07-23 15:52:59 EST&quot; &quot;2017-07-23 15:53:04 EST&quot;
+## [13] &quot;2017-07-23 16:51:46 EST&quot; &quot;2017-07-24 08:29:21 EST&quot;
+## [15] &quot;2017-07-24 11:02:21 EST&quot; &quot;2017-07-24 11:02:22 EST&quot;
+## [17] &quot;2017-07-24 11:02:28 EST&quot; &quot;2017-07-25 07:27:10 EST&quot;
+## [19] &quot;2017-07-25 08:41:26 EST&quot;
+## [1] &quot;2017-06-16 17:20:28 EST&quot; &quot;2017-06-16 17:20:29 EST&quot;
+## [1] &quot;2017-07-22 12:24:26 EST&quot; &quot;2017-07-22 14:31:45 EST&quot;
+## [3] &quot;2017-07-23 16:26:19 EST&quot; &quot;2017-07-24 08:53:55 EST&quot;
+## [5] &quot;2017-07-24 15:52:44 EST&quot;
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [1] NA NA NA
+## [1] NA NA NA NA NA NA
+## [1] NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [1] NA NA
+## [1] NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA
+## [1] NA NA NA NA
+## [1] NA
+## [1] NA
+## [1] NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [24] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [47] NA NA
+## [1] NA NA NA NA NA NA
+## [1] NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [1] NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [24] NA NA NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [1] NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [24] NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [24] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [47] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [70] NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [1] NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [24] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [47] NA
+## [1] NA NA
+## [1] NA NA NA NA NA NA
+## [1] NA
+## [1] NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [1] NA
+## [1] NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [1] NA NA NA NA
+## [1] NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [24] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [1] NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [1] NA NA
+## [1] NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [1] NA NA NA NA NA NA NA NA NA
+## [1] NA NA
+## [1] NA
+## [1] NA NA NA NA NA NA NA NA NA
+## [1] NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [24] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [1] NA NA
+## [1] NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [24] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [47] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [70] NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [24] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [47] NA NA NA NA NA NA NA NA
+## [1] &quot;2017-03-28 06:53:00 EST&quot;
+## [1] &quot;2017-04-24 10:08:11 EST&quot; &quot;2017-04-24 14:37:31 EST&quot;
+## [3] &quot;2017-04-24 16:44:29 EST&quot;
+##  [1] &quot;2017-04-26 12:50:49 EST&quot; &quot;2017-04-26 14:14:28 EST&quot;
+##  [3] &quot;2017-04-26 15:56:34 EST&quot; &quot;2017-04-26 17:12:12 EST&quot;
+##  [5] &quot;2017-04-27 06:26:20 EST&quot; &quot;2017-04-27 07:17:07 EST&quot;
+##  [7] &quot;2017-04-27 07:52:20 EST&quot; &quot;2017-04-27 10:33:32 EST&quot;
+##  [9] &quot;2017-04-27 12:21:16 EST&quot; &quot;2017-04-27 12:51:01 EST&quot;
+## [11] &quot;2017-04-27 14:27:48 EST&quot; &quot;2017-04-28 06:09:12 EST&quot;
+## [13] &quot;2017-04-28 07:06:33 EST&quot; &quot;2017-04-28 12:17:07 EST&quot;
+## [1] &quot;2017-05-23 07:01:13 EST&quot;
+## [1] &quot;2017-07-20 07:14:13 EST&quot; &quot;2017-07-20 08:26:07 EST&quot;
+## [3] &quot;2017-07-21 07:19:55 EST&quot;
+## [1] &quot;2017-07-22 12:08:37 EST&quot; &quot;2017-07-23 06:16:19 EST&quot;
+## [3] &quot;2017-07-23 09:36:57 EST&quot; &quot;2017-07-23 12:19:08 EST&quot;
+## [5] &quot;2017-07-23 13:10:08 EST&quot; &quot;2017-07-24 06:36:59 EST&quot;
+## [7] &quot;2017-07-24 08:30:22 EST&quot; &quot;2017-07-25 07:48:51 EST&quot;
+##  [1] &quot;2017-03-25 06:37:00 EST&quot; &quot;2017-03-25 06:57:00 EST&quot;
+##  [3] &quot;2017-03-25 07:58:00 EST&quot; &quot;2017-03-25 09:47:00 EST&quot;
+##  [5] &quot;2017-03-25 10:45:00 EST&quot; &quot;2017-03-26 06:25:00 EST&quot;
+##  [7] &quot;2017-03-26 06:51:00 EST&quot; &quot;2017-03-26 08:38:00 EST&quot;
+##  [9] &quot;2017-03-26 09:24:00 EST&quot; &quot;2017-03-26 10:58:00 EST&quot;
+## [11] &quot;2017-03-26 11:42:00 EST&quot; &quot;2017-03-27 06:49:00 EST&quot;
+## [13] &quot;2017-03-27 08:59:00 EST&quot; &quot;2017-03-27 11:01:05 EST&quot;
+## [1] &quot;2017-04-24 08:12:20 EST&quot; &quot;2017-04-24 09:49:57 EST&quot;
+## [3] &quot;2017-04-25 13:53:53 EST&quot;
+## [1] &quot;2017-04-27 06:41:18 EST&quot; &quot;2017-04-28 09:13:54 EST&quot;
+##  [1] &quot;2017-05-17 11:49:10 EST&quot; &quot;2017-05-17 13:40:37 EST&quot;
+##  [3] &quot;2017-05-18 07:08:35 EST&quot; &quot;2017-05-18 08:51:01 EST&quot;
+##  [5] &quot;2017-05-18 09:38:43 EST&quot; &quot;2017-05-18 13:08:45 EST&quot;
+##  [7] &quot;2017-05-18 14:54:17 EST&quot; &quot;2017-05-19 07:29:41 EST&quot;
+##  [9] &quot;2017-05-19 08:55:47 EST&quot; &quot;2017-05-19 09:47:10 EST&quot;
+## [11] &quot;2017-05-19 11:20:18 EST&quot; &quot;2017-05-19 11:50:15 EST&quot;
+## [13] &quot;2017-05-19 12:38:21 EST&quot; &quot;2017-05-19 13:48:58 EST&quot;
+## [15] &quot;2017-05-19 15:40:48 EST&quot; &quot;2017-05-20 07:32:30 EST&quot;
+## [17] &quot;2017-05-20 08:14:47 EST&quot; &quot;2017-05-20 09:13:15 EST&quot;
+##  [1] &quot;2017-05-20 13:02:40 EST&quot; &quot;2017-05-20 13:03:07 EST&quot;
+##  [3] &quot;2017-05-20 13:03:53 EST&quot; &quot;2017-05-20 13:05:44 EST&quot;
+##  [5] &quot;2017-05-20 13:06:18 EST&quot; &quot;2017-05-20 13:22:22 EST&quot;
+##  [7] &quot;2017-05-20 13:24:54 EST&quot; &quot;2017-05-20 14:46:18 EST&quot;
+##  [9] &quot;2017-05-20 16:08:14 EST&quot; &quot;2017-05-21 06:33:48 EST&quot;
+## [11] &quot;2017-05-21 07:29:11 EST&quot; &quot;2017-05-21 09:48:06 EST&quot;
+## [13] &quot;2017-05-21 09:56:24 EST&quot; &quot;2017-05-21 10:34:28 EST&quot;
+## [15] &quot;2017-05-21 12:46:58 EST&quot; &quot;2017-05-21 13:27:59 EST&quot;
+## [17] &quot;2017-05-22 06:46:57 EST&quot; &quot;2017-05-22 13:19:27 EST&quot;
+## [19] &quot;2017-05-23 07:25:20 EST&quot;
+##  [1] &quot;2017-06-14 11:57:05 EST&quot; &quot;2017-06-14 13:02:35 EST&quot;
+##  [3] &quot;2017-06-14 14:17:12 EST&quot; &quot;2017-06-14 15:15:06 EST&quot;
+##  [5] &quot;2017-06-14 16:51:03 EST&quot; &quot;2017-06-15 06:49:00 EST&quot;
+##  [7] &quot;2017-06-15 08:17:07 EST&quot; &quot;2017-06-15 10:16:20 EST&quot;
+##  [9] &quot;2017-06-15 10:22:05 EST&quot; &quot;2017-06-15 11:26:58 EST&quot;
+## [11] &quot;2017-06-15 12:00:43 EST&quot; &quot;2017-06-15 12:10:35 EST&quot;
+## [13] &quot;2017-06-15 12:38:19 EST&quot; &quot;2017-06-15 13:46:08 EST&quot;
+## [15] &quot;2017-06-15 13:47:08 EST&quot; &quot;2017-06-15 14:52:15 EST&quot;
+## [17] &quot;2017-06-15 14:55:41 EST&quot; &quot;2017-06-15 16:05:25 EST&quot;
+## [19] &quot;2017-06-16 06:44:22 EST&quot; &quot;2017-06-16 07:42:54 EST&quot;
+## [21] &quot;2017-06-16 08:52:35 EST&quot; &quot;2017-06-16 11:07:36 EST&quot;
+## [23] &quot;2017-06-16 12:26:07 EST&quot; &quot;2017-06-16 12:47:50 EST&quot;
+## [25] &quot;2017-06-16 13:20:26 EST&quot; &quot;2017-06-16 13:41:46 EST&quot;
+## [27] &quot;2017-06-16 13:47:47 EST&quot; &quot;2017-06-16 13:49:12 EST&quot;
+## [29] &quot;2017-06-16 13:55:47 EST&quot; &quot;2017-06-16 14:00:47 EST&quot;
+## [31] &quot;2017-06-16 14:14:11 EST&quot; &quot;2017-06-16 15:04:52 EST&quot;
+## [33] &quot;2017-06-16 15:05:03 EST&quot; &quot;2017-06-16 15:29:49 EST&quot;
+## [35] &quot;2017-06-16 15:41:05 EST&quot; &quot;2017-06-16 17:07:36 EST&quot;
+## [37] &quot;2017-06-17 06:33:33 EST&quot; &quot;2017-06-17 07:10:41 EST&quot;
+## [39] &quot;2017-06-17 08:39:38 EST&quot; &quot;2017-06-17 08:59:37 EST&quot;
+## [41] &quot;2017-06-17 10:27:38 EST&quot; &quot;2017-06-17 10:55:28 EST&quot;
+## [43] NA                       
+## [1] NA
+## [1] &quot;2017-07-19 10:02:12 EST&quot; &quot;2017-07-19 11:11:09 EST&quot;
+## [3] &quot;2017-07-20 08:56:37 EST&quot; &quot;2017-07-20 10:06:43 EST&quot;
+## [5] &quot;2017-07-21 07:15:14 EST&quot; &quot;2017-07-21 12:36:25 EST&quot;
+##  [1] &quot;2017-07-22 09:55:34 EST&quot; &quot;2017-07-22 13:28:52 EST&quot;
+##  [3] &quot;2017-07-22 14:09:27 EST&quot; &quot;2017-07-22 15:52:58 EST&quot;
+##  [5] &quot;2017-07-22 16:53:38 EST&quot; &quot;2017-07-22 17:54:28 EST&quot;
+##  [7] &quot;2017-07-23 06:26:17 EST&quot; &quot;2017-07-23 10:20:38 EST&quot;
+##  [9] &quot;2017-07-23 11:24:09 EST&quot; &quot;2017-07-23 11:40:41 EST&quot;
+## [11] &quot;2017-07-23 12:33:00 EST&quot; &quot;2017-07-23 12:35:00 EST&quot;
+## [13] &quot;2017-07-23 13:46:25 EST&quot; &quot;2017-07-23 15:14:18 EST&quot;
+## [15] &quot;2017-07-23 15:48:41 EST&quot; &quot;2017-07-23 16:32:23 EST&quot;
+## [17] &quot;2017-07-23 17:00:23 EST&quot; &quot;2017-07-23 17:27:40 EST&quot;
+## [19] &quot;2017-07-24 06:44:58 EST&quot; &quot;2017-07-24 07:48:18 EST&quot;
+## [21] &quot;2017-07-24 10:24:09 EST&quot; &quot;2017-07-24 11:47:56 EST&quot;
+## [23] &quot;2017-07-24 12:30:14 EST&quot; &quot;2017-07-24 12:40:47 EST&quot;
+## [25] &quot;2017-07-24 13:00:30 EST&quot; &quot;2017-07-24 14:16:03 EST&quot;
+## [27] &quot;2017-07-24 14:57:47 EST&quot; &quot;2017-07-24 17:19:55 EST&quot;
+## [29] &quot;2017-07-25 10:17:01 EST&quot;
+##  [1] &quot;2017-05-17 11:50:46 EST&quot; &quot;2017-05-17 11:53:33 EST&quot;
+##  [3] &quot;2017-05-17 13:30:16 EST&quot; &quot;2017-05-17 13:42:12 EST&quot;
+##  [5] &quot;2017-05-17 14:54:30 EST&quot; &quot;2017-05-18 07:10:12 EST&quot;
+##  [7] &quot;2017-05-18 08:52:33 EST&quot; &quot;2017-05-18 09:39:05 EST&quot;
+##  [9] &quot;2017-05-18 09:51:13 EST&quot; &quot;2017-05-18 11:06:38 EST&quot;
+## [11] &quot;2017-05-18 13:09:27 EST&quot; &quot;2017-05-18 13:55:55 EST&quot;
+## [13] &quot;2017-05-18 14:55:20 EST&quot; &quot;2017-05-18 16:47:01 EST&quot;
+## [15] &quot;2017-05-19 07:31:13 EST&quot; &quot;2017-05-19 08:55:37 EST&quot;
+## [17] &quot;2017-05-19 08:57:20 EST&quot; &quot;2017-05-19 09:48:46 EST&quot;
+## [19] &quot;2017-05-19 10:41:15 EST&quot; &quot;2017-05-19 11:21:55 EST&quot;
+## [21] &quot;2017-05-19 11:51:47 EST&quot; &quot;2017-05-19 12:40:04 EST&quot;
+## [23] &quot;2017-05-19 13:21:14 EST&quot; &quot;2017-05-19 13:50:31 EST&quot;
+## [25] &quot;2017-05-19 15:06:39 EST&quot; &quot;2017-05-19 15:42:05 EST&quot;
+## [27] &quot;2017-05-20 07:32:20 EST&quot; &quot;2017-05-20 07:33:30 EST&quot;
+## [29] &quot;2017-05-20 08:16:02 EST&quot; &quot;2017-05-20 09:13:43 EST&quot;
+##  [1] &quot;2017-06-15 06:35:28 EST&quot; &quot;2017-06-15 07:41:42 EST&quot;
+##  [3] &quot;2017-06-15 08:09:08 EST&quot; &quot;2017-06-15 09:07:10 EST&quot;
+##  [5] &quot;2017-06-16 06:12:26 EST&quot; &quot;2017-06-16 06:19:33 EST&quot;
+##  [7] &quot;2017-06-16 07:01:02 EST&quot; &quot;2017-06-16 07:08:04 EST&quot;
+##  [9] &quot;2017-06-16 09:17:57 EST&quot; &quot;2017-06-16 10:29:17 EST&quot;
+## [11] &quot;2017-06-16 10:29:20 EST&quot; &quot;2017-06-16 12:18:32 EST&quot;
+## [13] &quot;2017-06-17 07:04:12 EST&quot; &quot;2017-06-17 07:05:11 EST&quot;
+## [15] &quot;2017-06-17 08:40:49 EST&quot; &quot;2017-06-17 09:10:47 EST&quot;
+## [17] &quot;2017-06-17 10:15:48 EST&quot;
+##  [1] &quot;2017-06-18 06:23:51 EST&quot; &quot;2017-06-18 07:15:12 EST&quot;
+##  [3] &quot;2017-06-19 06:34:28 EST&quot; &quot;2017-06-19 07:07:50 EST&quot;
+##  [5] &quot;2017-06-19 07:10:48 EST&quot; &quot;2017-06-19 07:22:19 EST&quot;
+##  [7] &quot;2017-06-19 07:54:46 EST&quot; &quot;2017-06-19 08:03:20 EST&quot;
+##  [9] &quot;2017-06-19 10:19:45 EST&quot; &quot;2017-06-19 10:55:32 EST&quot;
+## [11] &quot;2017-06-19 12:03:28 EST&quot; &quot;2017-06-20 06:39:42 EST&quot;
+## [13] &quot;2017-06-20 07:30:44 EST&quot; &quot;2017-06-20 07:41:09 EST&quot;
+## [15] &quot;2017-06-20 09:14:04 EST&quot; &quot;2017-06-20 09:16:13 EST&quot;
+## [17] &quot;2017-06-20 10:54:14 EST&quot;
+##  [1] &quot;2017-07-20 06:49:39 EST&quot; &quot;2017-07-20 07:02:03 EST&quot;
+##  [3] &quot;2017-07-20 08:10:43 EST&quot; &quot;2017-07-20 10:35:33 EST&quot;
+##  [5] &quot;2017-07-20 12:07:10 EST&quot; &quot;2017-07-21 06:27:08 EST&quot;
+##  [7] &quot;2017-07-21 07:44:03 EST&quot; &quot;2017-07-21 08:11:53 EST&quot;
+##  [9] &quot;2017-07-21 08:17:43 EST&quot; &quot;2017-07-21 08:51:34 EST&quot;
+## [11] &quot;2017-07-21 08:59:29 EST&quot; &quot;2017-07-21 09:23:57 EST&quot;
+## [13] &quot;2017-07-21 09:49:27 EST&quot; &quot;2017-07-21 10:17:16 EST&quot;
+## [15] &quot;2017-07-22 06:55:40 EST&quot; &quot;2017-07-22 07:48:43 EST&quot;
+## [17] &quot;2017-07-22 08:04:11 EST&quot; &quot;2017-07-22 08:07:21 EST&quot;
+## [1] &quot;2017-06-15 12:28:42 EST&quot; &quot;2017-06-17 11:07:32 EST&quot;
+##  [1] &quot;2017-06-17 11:59:43 EST&quot; &quot;2017-06-17 12:03:59 EST&quot;
+##  [3] &quot;2017-06-17 13:19:16 EST&quot; &quot;2017-06-17 14:31:30 EST&quot;
+##  [5] &quot;2017-06-17 14:48:09 EST&quot; &quot;2017-06-18 06:13:58 EST&quot;
+##  [7] &quot;2017-06-18 07:07:58 EST&quot; &quot;2017-06-18 08:05:02 EST&quot;
+##  [9] &quot;2017-06-18 08:49:08 EST&quot; &quot;2017-06-18 09:22:30 EST&quot;
+## [11] &quot;2017-06-18 09:22:35 EST&quot; &quot;2017-06-18 09:38:21 EST&quot;
+## [13] &quot;2017-06-18 10:41:14 EST&quot; &quot;2017-06-18 11:34:32 EST&quot;
+## [15] &quot;2017-06-18 12:26:09 EST&quot; &quot;2017-06-18 13:42:28 EST&quot;
+## [17] &quot;2017-06-18 14:55:37 EST&quot; &quot;2017-06-18 17:16:11 EST&quot;
+## [19] &quot;2017-06-19 06:27:42 EST&quot; &quot;2017-06-19 07:28:05 EST&quot;
+## [21] &quot;2017-06-19 07:57:03 EST&quot; &quot;2017-06-19 08:36:12 EST&quot;
+## [23] &quot;2017-06-19 10:40:25 EST&quot; &quot;2017-06-19 11:29:34 EST&quot;
+## [25] &quot;2017-06-19 14:23:02 EST&quot; &quot;2017-06-19 17:00:18 EST&quot;
+## [27] &quot;2017-06-20 07:01:30 EST&quot; &quot;2017-06-20 08:51:44 EST&quot;
+## [29] &quot;2017-06-20 09:43:48 EST&quot; &quot;2017-06-20 10:32:52 EST&quot;
+## [31] &quot;2017-06-20 11:30:45 EST&quot; &quot;2017-06-20 11:36:36 EST&quot;
+## [33] NA                        NA                       
+##  [1] &quot;2017-07-19 15:23:53 EST&quot; &quot;2017-07-19 15:53:17 EST&quot;
+##  [3] &quot;2017-07-19 16:33:16 EST&quot; &quot;2017-07-19 17:05:34 EST&quot;
+##  [5] &quot;2017-07-19 17:38:36 EST&quot; &quot;2017-07-19 17:58:54 EST&quot;
+##  [7] &quot;2017-07-20 09:18:29 EST&quot; &quot;2017-07-20 10:06:37 EST&quot;
+##  [9] &quot;2017-07-20 10:57:57 EST&quot; &quot;2017-07-20 11:34:42 EST&quot;
+## [11] &quot;2017-07-20 12:08:08 EST&quot; &quot;2017-07-20 12:08:19 EST&quot;
+## [13] &quot;2017-07-20 12:46:04 EST&quot; &quot;2017-07-20 12:51:40 EST&quot;
+## [15] &quot;2017-07-20 14:44:20 EST&quot; &quot;2017-07-20 16:10:34 EST&quot;
+## [17] &quot;2017-07-20 17:07:31 EST&quot; &quot;2017-07-20 18:02:22 EST&quot;
+## [19] &quot;2017-07-21 07:56:36 EST&quot; &quot;2017-07-21 08:18:45 EST&quot;
+## [21] &quot;2017-07-21 08:19:16 EST&quot; &quot;2017-07-21 10:14:47 EST&quot;
+## [1] &quot;2017-07-23 07:57:44 EST&quot; &quot;2017-07-25 07:07:05 EST&quot;
+## [1] &quot;2017-05-17 16:43:37 EST&quot; &quot;2017-05-18 07:33:38 EST&quot;
+## [3] &quot;2017-05-18 09:04:12 EST&quot; &quot;2017-05-18 09:05:12 EST&quot;
+## [5] &quot;2017-05-18 17:19:33 EST&quot; &quot;2017-05-18 17:47:00 EST&quot;
+## [7] &quot;2017-05-19 07:28:10 EST&quot;
+##  [1] &quot;2017-06-14 15:29:15 EST&quot; &quot;2017-06-14 15:34:28 EST&quot;
+##  [3] &quot;2017-06-14 16:16:42 EST&quot; &quot;2017-06-14 16:48:08 EST&quot;
+##  [5] &quot;2017-06-14 17:34:27 EST&quot; &quot;2017-06-15 11:59:44 EST&quot;
+##  [7] &quot;2017-06-15 12:38:29 EST&quot; &quot;2017-06-15 13:05:42 EST&quot;
+##  [9] &quot;2017-06-15 13:46:23 EST&quot; &quot;2017-06-15 14:13:16 EST&quot;
+## [11] &quot;2017-06-15 14:46:29 EST&quot; &quot;2017-06-15 15:29:22 EST&quot;
+## [13] &quot;2017-06-15 15:50:06 EST&quot; &quot;2017-06-15 15:59:51 EST&quot;
+## [15] &quot;2017-06-16 06:19:52 EST&quot; &quot;2017-06-16 08:36:08 EST&quot;
+## [17] &quot;2017-06-16 08:42:33 EST&quot; &quot;2017-06-16 08:59:45 EST&quot;
+## [19] &quot;2017-06-16 09:27:25 EST&quot; &quot;2017-06-16 09:29:27 EST&quot;
+## [21] &quot;2017-06-16 09:30:39 EST&quot; &quot;2017-06-16 09:58:10 EST&quot;
+## [23] &quot;2017-06-16 10:18:18 EST&quot; &quot;2017-06-16 10:22:37 EST&quot;
+## [25] &quot;2017-06-16 10:56:32 EST&quot; &quot;2017-06-16 11:16:00 EST&quot;
+## [27] &quot;2017-06-16 11:19:53 EST&quot; &quot;2017-06-16 17:35:50 EST&quot;
+## [29] &quot;2017-06-17 06:22:00 EST&quot; &quot;2017-06-17 06:58:47 EST&quot;
+## [31] &quot;2017-06-17 07:49:34 EST&quot; &quot;2017-06-17 08:00:33 EST&quot;
+## [33] &quot;2017-06-17 09:02:56 EST&quot; &quot;2017-06-17 09:40:38 EST&quot;
+## [35] &quot;2017-06-17 09:53:02 EST&quot; &quot;2017-06-17 10:51:01 EST&quot;
+##  [1] &quot;2017-06-17 11:17:24 EST&quot; &quot;2017-06-17 11:27:42 EST&quot;
+##  [3] &quot;2017-06-17 11:47:55 EST&quot; &quot;2017-06-17 12:19:23 EST&quot;
+##  [5] &quot;2017-06-17 12:19:41 EST&quot; &quot;2017-06-17 12:41:56 EST&quot;
+##  [7] &quot;2017-06-17 12:42:28 EST&quot; &quot;2017-06-17 12:52:53 EST&quot;
+##  [9] &quot;2017-06-17 13:27:29 EST&quot; &quot;2017-06-17 13:56:06 EST&quot;
+## [11] &quot;2017-06-17 14:23:35 EST&quot; &quot;2017-06-17 15:29:03 EST&quot;
+## [13] &quot;2017-06-17 15:35:13 EST&quot; &quot;2017-06-17 16:31:00 EST&quot;
+## [15] &quot;2017-06-18 06:26:24 EST&quot; &quot;2017-06-18 06:45:14 EST&quot;
+## [17] &quot;2017-06-18 08:08:44 EST&quot; &quot;2017-06-18 08:24:06 EST&quot;
+## [19] &quot;2017-06-18 09:30:25 EST&quot; &quot;2017-06-18 09:35:07 EST&quot;
+## [21] &quot;2017-06-18 10:10:02 EST&quot; &quot;2017-06-18 11:28:30 EST&quot;
+## [23] &quot;2017-06-18 12:10:12 EST&quot; &quot;2017-06-18 13:26:35 EST&quot;
+## [25] &quot;2017-06-18 14:01:37 EST&quot; &quot;2017-06-18 14:43:36 EST&quot;
+## [27] &quot;2017-06-18 15:24:31 EST&quot; &quot;2017-06-18 16:45:53 EST&quot;
+## [29] &quot;2017-06-18 17:11:25 EST&quot; &quot;2017-06-19 06:44:34 EST&quot;
+## [31] &quot;2017-06-19 06:46:49 EST&quot; &quot;2017-06-19 07:45:02 EST&quot;
+## [33] &quot;2017-06-19 08:29:31 EST&quot; &quot;2017-06-19 09:38:40 EST&quot;
+## [35] &quot;2017-06-19 09:54:38 EST&quot; &quot;2017-06-19 09:56:25 EST&quot;
+## [37] &quot;2017-06-19 10:17:35 EST&quot; &quot;2017-06-19 10:25:41 EST&quot;
+## [39] &quot;2017-06-19 11:08:12 EST&quot; &quot;2017-06-19 11:14:26 EST&quot;
+## [41] &quot;2017-06-19 11:17:08 EST&quot; &quot;2017-06-19 12:28:35 EST&quot;
+## [43] &quot;2017-06-19 12:30:40 EST&quot; &quot;2017-06-19 13:38:21 EST&quot;
+## [45] &quot;2017-06-19 13:42:27 EST&quot; &quot;2017-06-19 14:57:47 EST&quot;
+## [47] &quot;2017-06-19 16:45:57 EST&quot; &quot;2017-06-20 07:29:33 EST&quot;
+## [49] &quot;2017-06-20 09:44:27 EST&quot; &quot;2017-06-20 11:24:05 EST&quot;
+## [51] &quot;2017-06-20 12:40:53 EST&quot; NA                       
+## [1] &quot;2017-07-21 15:55:16 EST&quot;
+## [1] &quot;2017-05-19 07:33:41 EST&quot; &quot;2017-05-19 11:26:09 EST&quot;
+## [3] &quot;2017-05-19 12:44:05 EST&quot; &quot;2017-05-19 15:46:04 EST&quot;
+## [5] &quot;2017-05-20 07:06:21 EST&quot; &quot;2017-05-20 07:37:47 EST&quot;
+## [7] &quot;2017-05-20 09:18:37 EST&quot;
+##  [1] &quot;2017-05-20 10:34:14 EST&quot; &quot;2017-05-20 10:43:54 EST&quot;
+##  [3] &quot;2017-05-20 16:14:43 EST&quot; &quot;2017-05-20 16:51:38 EST&quot;
+##  [5] &quot;2017-05-20 16:54:29 EST&quot; &quot;2017-05-21 08:01:19 EST&quot;
+##  [7] &quot;2017-05-21 08:36:14 EST&quot; &quot;2017-05-21 10:00:13 EST&quot;
+##  [9] &quot;2017-05-21 10:39:59 EST&quot; &quot;2017-05-21 13:33:23 EST&quot;
+## [11] &quot;2017-05-21 16:46:04 EST&quot; &quot;2017-05-22 07:02:54 EST&quot;
+## [13] &quot;2017-05-22 09:35:57 EST&quot; &quot;2017-05-22 12:24:06 EST&quot;
+## [15] &quot;2017-05-22 13:00:33 EST&quot; &quot;2017-05-22 14:38:34 EST&quot;
+## [1] &quot;2017-06-19 15:00:49 EST&quot;
+##  [1] &quot;2017-07-21 06:24:30 EST&quot; &quot;2017-07-21 07:30:58 EST&quot;
+##  [3] &quot;2017-07-21 07:59:40 EST&quot; &quot;2017-07-21 09:21:23 EST&quot;
+##  [5] &quot;2017-07-21 09:45:25 EST&quot; &quot;2017-07-21 10:04:04 EST&quot;
+##  [7] &quot;2017-07-21 10:29:25 EST&quot; &quot;2017-07-21 11:12:05 EST&quot;
+##  [9] &quot;2017-07-21 11:56:25 EST&quot; NA                       
+##   [1] &quot;2017-03-19 06:35:59 EST&quot; &quot;2017-03-19 07:57:12 EST&quot;
+##   [3] &quot;2017-03-19 13:58:45 EST&quot; &quot;2017-03-19 14:23:28 EST&quot;
+##   [5] &quot;2017-03-19 17:31:13 EST&quot; &quot;2017-03-19 17:31:27 EST&quot;
+##   [7] &quot;2017-03-19 18:04:21 EST&quot; &quot;2017-03-20 06:22:11 EST&quot;
+##   [9] &quot;2017-03-20 06:27:38 EST&quot; &quot;2017-03-20 07:52:11 EST&quot;
+##  [11] &quot;2017-03-20 08:02:07 EST&quot; &quot;2017-03-20 11:26:32 EST&quot;
+##  [13] &quot;2017-03-20 11:59:48 EST&quot; &quot;2017-03-20 13:09:17 EST&quot;
+##  [15] &quot;2017-03-20 13:14:58 EST&quot; &quot;2017-03-20 13:54:48 EST&quot;
+##  [17] &quot;2017-03-20 15:25:36 EST&quot; &quot;2017-03-20 16:55:12 EST&quot;
+##  [19] &quot;2017-03-20 17:36:56 EST&quot; &quot;2017-03-20 17:50:26 EST&quot;
+##  [21] &quot;2017-03-20 18:21:28 EST&quot; &quot;2017-03-21 06:09:39 EST&quot;
+##  [23] &quot;2017-03-21 07:38:29 EST&quot; &quot;2017-03-21 08:07:24 EST&quot;
+##  [25] &quot;2017-03-21 08:30:53 EST&quot; &quot;2017-03-21 09:35:12 EST&quot;
+##  [27] &quot;2017-03-21 10:17:16 EST&quot; &quot;2017-03-21 10:41:56 EST&quot;
+##  [29] &quot;2017-03-21 11:25:15 EST&quot; &quot;2017-03-21 11:54:23 EST&quot;
+##  [31] &quot;2017-03-21 13:24:20 EST&quot; &quot;2017-03-21 13:44:58 EST&quot;
+##  [33] &quot;2017-03-21 13:53:47 EST&quot; &quot;2017-03-21 14:49:54 EST&quot;
+##  [35] &quot;2017-03-21 15:45:20 EST&quot; &quot;2017-03-21 16:04:41 EST&quot;
+##  [37] &quot;2017-03-21 16:57:11 EST&quot; &quot;2017-03-21 18:11:10 EST&quot;
+##  [39] &quot;2017-03-22 06:21:58 EST&quot; &quot;2017-03-22 07:02:43 EST&quot;
+##  [41] &quot;2017-03-22 07:22:26 EST&quot; &quot;2017-03-22 07:51:54 EST&quot;
+##  [43] &quot;2017-03-22 08:08:27 EST&quot; &quot;2017-03-22 08:42:54 EST&quot;
+##  [45] &quot;2017-04-05 06:49:13 EST&quot; &quot;2017-04-05 07:06:59 EST&quot;
+##  [47] &quot;2017-04-05 07:15:10 EST&quot; &quot;2017-04-05 08:02:18 EST&quot;
+##  [49] &quot;2017-04-05 09:59:38 EST&quot; &quot;2017-04-05 14:49:08 EST&quot;
+##  [51] &quot;2017-04-05 15:46:32 EST&quot; &quot;2017-04-05 17:02:48 EST&quot;
+##  [53] &quot;2017-04-05 18:09:36 EST&quot; &quot;2017-04-05 18:22:13 EST&quot;
+##  [55] &quot;2017-04-06 06:41:16 EST&quot; &quot;2017-04-06 07:12:22 EST&quot;
+##  [57] &quot;2017-04-06 07:12:31 EST&quot; &quot;2017-04-06 08:25:01 EST&quot;
+##  [59] &quot;2017-04-06 08:55:20 EST&quot; &quot;2017-04-06 09:08:10 EST&quot;
+##  [61] &quot;2017-04-06 09:18:04 EST&quot; &quot;2017-04-06 09:46:21 EST&quot;
+##  [63] &quot;2017-04-06 11:30:23 EST&quot; &quot;2017-04-06 11:40:52 EST&quot;
+##  [65] &quot;2017-04-06 11:53:39 EST&quot; &quot;2017-04-06 13:08:28 EST&quot;
+##  [67] &quot;2017-04-06 13:55:10 EST&quot; &quot;2017-04-06 14:11:53 EST&quot;
+##  [69] &quot;2017-04-06 14:22:24 EST&quot; &quot;2017-04-06 14:38:34 EST&quot;
+##  [71] &quot;2017-04-06 16:25:28 EST&quot; &quot;2017-04-06 16:26:20 EST&quot;
+##  [73] &quot;2017-04-06 16:29:58 EST&quot; &quot;2017-04-06 17:54:04 EST&quot;
+##  [75] &quot;2017-04-06 18:13:31 EST&quot; &quot;2017-04-06 18:21:41 EST&quot;
+##  [77] &quot;2017-04-07 06:08:31 EST&quot; &quot;2017-04-07 06:53:14 EST&quot;
+##  [79] &quot;2017-04-07 07:54:10 EST&quot; &quot;2017-04-07 08:13:03 EST&quot;
+##  [81] &quot;2017-04-07 09:20:26 EST&quot; &quot;2017-04-07 09:36:17 EST&quot;
+##  [83] &quot;2017-04-07 09:42:22 EST&quot; &quot;2017-04-07 09:43:05 EST&quot;
+##  [85] &quot;2017-04-07 10:10:04 EST&quot; &quot;2017-04-07 10:35:00 EST&quot;
+##  [87] &quot;2017-04-07 11:06:41 EST&quot; &quot;2017-04-07 13:04:51 EST&quot;
+##  [89] &quot;2017-04-07 13:25:53 EST&quot; &quot;2017-04-07 14:03:53 EST&quot;
+##  [91] &quot;2017-04-07 14:15:42 EST&quot; &quot;2017-04-07 14:18:00 EST&quot;
+##  [93] &quot;2017-04-07 16:00:41 EST&quot; &quot;2017-04-07 16:50:47 EST&quot;
+##  [95] &quot;2017-04-07 17:13:03 EST&quot; &quot;2017-04-07 18:05:51 EST&quot;
+##  [97] &quot;2017-04-07 18:07:03 EST&quot; &quot;2017-04-08 06:06:23 EST&quot;
+##  [99] &quot;2017-04-08 07:15:10 EST&quot; &quot;2017-04-08 07:46:54 EST&quot;
+## [101] &quot;2017-04-08 07:49:57 EST&quot; &quot;2017-04-08 07:50:43 EST&quot;
+## [103] &quot;2017-04-08 07:52:17 EST&quot; &quot;2017-04-08 07:59:03 EST&quot;
+## [105] &quot;2017-04-08 09:15:46 EST&quot; &quot;2017-04-08 09:21:50 EST&quot;
+## [107] &quot;2017-04-08 10:04:48 EST&quot;
+##  [1] &quot;2017-06-14 12:11:03 EST&quot; &quot;2017-06-14 12:11:03 EST&quot;
+##  [3] NA                        NA                       
+##  [5] NA                        NA                       
+##  [7] NA                        NA                       
+##  [9] NA                        NA                       
+## [11] NA                        NA                       
+## [13] NA                        NA                       
+## [15] NA                        NA                       
+## [17] NA                        NA                       
+## [1] &quot;2017-06-19 12:08:18 EST&quot; &quot;2017-06-20 13:42:20 EST&quot;
+## [1] &quot;2017-07-14 07:49:24 EST&quot;
+##  [1] &quot;2017-07-14 13:04:55 EST&quot; &quot;2017-07-14 13:57:12 EST&quot;
+##  [3] &quot;2017-07-15 10:38:38 EST&quot; &quot;2017-07-15 14:40:58 EST&quot;
+##  [5] &quot;2017-07-16 09:53:33 EST&quot; &quot;2017-07-16 13:37:32 EST&quot;
+##  [7] &quot;2017-07-17 09:32:31 EST&quot; &quot;2017-07-17 12:32:51 EST&quot;
+##  [9] &quot;2017-07-17 13:37:33 EST&quot; &quot;2017-07-17 14:28:43 EST&quot;
+## [11] &quot;2017-07-17 15:41:45 EST&quot;
+##  [1] &quot;2017-05-06 06:29:49 EST&quot; &quot;2017-05-06 08:02:53 EST&quot;
+##  [3] &quot;2017-05-06 09:06:41 EST&quot; &quot;2017-05-06 11:22:49 EST&quot;
+##  [5] &quot;2017-05-06 14:08:11 EST&quot; &quot;2017-05-06 14:49:52 EST&quot;
+##  [7] &quot;2017-05-07 06:31:26 EST&quot; &quot;2017-05-07 07:30:42 EST&quot;
+##  [9] &quot;2017-05-07 08:27:34 EST&quot; &quot;2017-05-07 09:38:52 EST&quot;
+## [11] &quot;2017-05-07 10:00:18 EST&quot; &quot;2017-05-07 11:17:12 EST&quot;
+## [13] &quot;2017-05-07 12:53:41 EST&quot; &quot;2017-05-07 13:58:56 EST&quot;
+## [15] &quot;2017-05-07 15:11:54 EST&quot; &quot;2017-05-07 16:18:43 EST&quot;
+## [17] &quot;2017-05-07 17:15:26 EST&quot; &quot;2017-05-08 06:30:04 EST&quot;
+## [19] &quot;2017-05-08 07:19:21 EST&quot; &quot;2017-05-08 08:13:15 EST&quot;
+## [21] &quot;2017-05-08 09:08:56 EST&quot; &quot;2017-05-08 09:37:20 EST&quot;
+## [23] &quot;2017-05-08 10:00:18 EST&quot; &quot;2017-05-08 11:06:34 EST&quot;
+## [25] &quot;2017-05-08 11:57:36 EST&quot; &quot;2017-05-08 12:45:02 EST&quot;
+## [27] &quot;2017-05-08 12:55:31 EST&quot; &quot;2017-05-08 14:28:48 EST&quot;
+## [29] &quot;2017-05-08 15:21:20 EST&quot; &quot;2017-05-08 15:58:53 EST&quot;
+## [31] &quot;2017-05-08 16:51:30 EST&quot; NA                       
+## [33] NA                        NA                       
+## [35] NA                        NA                       
+## [37] NA                        NA                       
+## [1] &quot;2017-05-13 06:26:36 EST&quot; &quot;2017-05-13 06:46:22 EST&quot;
+## [3] &quot;2017-05-13 09:10:33 EST&quot; NA                       
+## [5] NA                        NA                       
+## [7] NA                        NA                       
+## [1] &quot;2017-06-17 14:09:28 EST&quot; &quot;2017-06-17 17:37:52 EST&quot;
+## [3] &quot;2017-06-18 15:02:17 EST&quot;
+## [1] &quot;2017-07-15 08:23:04 EST&quot; &quot;2017-07-16 07:36:03 EST&quot;
+## [3] &quot;2017-07-17 09:40:09 EST&quot; &quot;2017-07-17 16:36:43 EST&quot;
+## [1] &quot;2017-05-07 08:18:25 EST&quot; &quot;2017-05-07 13:54:00 EST&quot;
+## [3] &quot;2017-05-08 06:18:18 EST&quot; &quot;2017-05-08 10:25:26 EST&quot;
+## [5] &quot;2017-05-08 15:25:14 EST&quot; &quot;2017-05-09 06:45:07 EST&quot;
+## [7] &quot;2017-05-09 08:13:13 EST&quot; &quot;2017-05-09 09:40:47 EST&quot;
+##  [1] &quot;2017-05-13 06:19:37 EST&quot; &quot;2017-05-13 06:44:00 EST&quot;
+##  [3] &quot;2017-05-13 07:34:10 EST&quot; &quot;2017-05-13 07:36:37 EST&quot;
+##  [5] &quot;2017-05-13 08:46:37 EST&quot; &quot;2017-05-13 09:00:46 EST&quot;
+##  [7] &quot;2017-05-13 09:33:11 EST&quot; &quot;2017-05-13 10:09:54 EST&quot;
+##  [9] &quot;2017-05-13 10:59:41 EST&quot; &quot;2017-05-13 11:53:26 EST&quot;
+## [11] &quot;2017-05-13 12:03:41 EST&quot; &quot;2017-06-13 11:37:52 EST&quot;
+## [13] &quot;2017-06-13 14:08:49 EST&quot; &quot;2017-06-13 17:05:47 EST&quot;
+## [15] &quot;2017-06-14 16:33:24 EST&quot; &quot;2017-06-15 12:32:29 EST&quot;
+## [17] NA                        NA                       
+## [19] NA                        NA                       
+## [21] NA                        NA                       
+## [23] NA                        NA                       
+## [25] NA                        NA                       
+## [27] NA                        NA                       
+## [29] NA                        NA                       
+## [31] NA                        NA                       
+## [33] NA                        NA                       
+## [35] NA                        NA                       
+## [37] NA                        NA                       
+## [39] NA                        NA                       
+## [41] NA                        NA                       
+## [43] NA                        NA                       
+## [45] NA                        NA                       
+## [47] NA                        NA                       
+## [49] NA                        NA                       
+## [51] NA                        NA                       
+## [53] NA                        NA                       
+## [55] NA                        NA                       
+## [57] NA                        NA                       
+## [59] NA                       
+## [1] &quot;2017-07-12 12:06:01 EST&quot; &quot;2017-07-12 18:09:27 EST&quot;
+## [3] &quot;2017-07-13 12:50:07 EST&quot;
+## [1] &quot;2017-05-06 12:22:16 EST&quot; &quot;2017-05-07 13:47:50 EST&quot;
+## [3] &quot;2017-05-08 13:58:57 EST&quot;
+## [1] NA
+##  [1] &quot;2017-07-14 15:10:25 EST&quot; &quot;2017-07-14 18:13:57 EST&quot;
+##  [3] &quot;2017-07-15 11:14:47 EST&quot; &quot;2017-07-15 15:13:21 EST&quot;
+##  [5] &quot;2017-07-15 15:38:33 EST&quot; &quot;2017-07-15 18:10:32 EST&quot;
+##  [7] &quot;2017-07-16 09:18:28 EST&quot; &quot;2017-07-16 09:25:18 EST&quot;
+##  [9] &quot;2017-07-16 11:47:17 EST&quot; &quot;2017-07-16 13:22:57 EST&quot;
+## [11] &quot;2017-07-16 15:27:26 EST&quot; &quot;2017-07-16 18:23:38 EST&quot;
+## [13] &quot;2017-07-17 08:29:04 EST&quot; &quot;2017-07-17 15:25:09 EST&quot;
+## [15] &quot;2017-07-17 16:26:20 EST&quot; &quot;2017-07-17 16:45:22 EST&quot;
+## [17] &quot;2017-07-17 18:05:37 EST&quot;
+##  [1] &quot;2017-05-06 13:06:13 EST&quot; &quot;2017-05-06 15:38:01 EST&quot;
+##  [3] &quot;2017-05-06 16:03:03 EST&quot; &quot;2017-05-07 06:02:38 EST&quot;
+##  [5] &quot;2017-05-07 06:11:12 EST&quot; &quot;2017-05-07 08:34:52 EST&quot;
+##  [7] &quot;2017-05-07 10:22:02 EST&quot; &quot;2017-05-07 12:26:43 EST&quot;
+##  [9] &quot;2017-05-07 15:27:16 EST&quot; &quot;2017-05-07 17:36:42 EST&quot;
+## [11] &quot;2017-05-08 06:37:10 EST&quot; &quot;2017-05-08 09:30:52 EST&quot;
+## [13] &quot;2017-05-08 11:14:03 EST&quot; &quot;2017-05-08 12:34:21 EST&quot;
+## [15] &quot;2017-05-08 14:14:43 EST&quot; &quot;2017-05-08 17:03:45 EST&quot;
+##  [1] &quot;2017-05-13 06:05:35 EST&quot; &quot;2017-05-13 07:06:24 EST&quot;
+##  [3] &quot;2017-05-13 08:28:16 EST&quot; &quot;2017-05-13 09:23:26 EST&quot;
+##  [5] &quot;2017-05-13 10:13:23 EST&quot; &quot;2017-05-13 10:44:48 EST&quot;
+##  [7] &quot;2017-05-13 11:48:58 EST&quot; NA                       
+##  [9] NA                        NA                       
+## [11] NA                        NA                       
+## [13] NA                        NA                       
+## [15] NA                        NA                       
+## [17] NA                        NA                       
+## [19] NA                        NA                       
+## [21] NA                        NA                       
+## [23] NA                        NA                       
+## [25] NA                        NA                       
+## [27] NA                        NA                       
+## [29] NA                        NA                       
+## [31] NA                        NA                       
+## [33] NA                        NA                       
+## [35] NA                        NA                       
+## [37] NA                       
+## [1] &quot;2017-06-19 09:26:49 EST&quot; &quot;2017-06-20 13:48:17 EST&quot;
+## [1] &quot;2017-07-16 07:30:09 EST&quot; &quot;2017-07-17 07:25:03 EST&quot;
+## [1] &quot;2017-06-14 15:07:37 EST&quot; &quot;2017-06-15 07:56:54 EST&quot;
+## [3] &quot;2017-06-15 18:11:52 EST&quot; &quot;2017-06-16 07:24:57 EST&quot;
+## [1] &quot;2017-06-17 14:17:45 EST&quot; &quot;2017-06-17 16:33:25 EST&quot;
+## [3] &quot;2017-06-18 10:19:30 EST&quot; &quot;2017-06-18 12:04:18 EST&quot;
+## [5] &quot;2017-06-18 12:35:51 EST&quot; &quot;2017-06-18 15:09:54 EST&quot;
+## [7] &quot;2017-06-18 16:30:19 EST&quot; &quot;2017-06-19 09:20:59 EST&quot;
+## [9] &quot;2017-06-19 11:34:30 EST&quot;
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [24] NA NA NA
+## [1] NA NA
+##  [1] &quot;2017-02-18 16:00:32 EST&quot; &quot;2017-02-18 16:00:32 EST&quot;
+##  [3] &quot;2017-02-18 18:15:24 EST&quot; &quot;2017-02-18 18:15:24 EST&quot;
+##  [5] &quot;2017-02-19 06:35:08 EST&quot; &quot;2017-02-19 06:35:08 EST&quot;
+##  [7] &quot;2017-02-19 09:48:08 EST&quot; &quot;2017-02-19 09:48:08 EST&quot;
+##  [9] &quot;2017-02-19 10:25:55 EST&quot; &quot;2017-02-19 10:25:55 EST&quot;
+## [11] &quot;2017-02-19 13:19:50 EST&quot; &quot;2017-02-19 13:19:50 EST&quot;
+## [13] &quot;2017-02-19 15:26:11 EST&quot; &quot;2017-02-19 15:26:11 EST&quot;
+## [15] &quot;2017-02-19 15:38:28 EST&quot; &quot;2017-02-19 15:38:28 EST&quot;
+## [17] &quot;2017-02-20 06:21:50 EST&quot; &quot;2017-02-20 06:21:50 EST&quot;
+## [19] &quot;2017-02-20 07:03:13 EST&quot; &quot;2017-02-20 07:03:13 EST&quot;
+## [21] &quot;2017-02-20 07:18:02 EST&quot; &quot;2017-02-20 07:18:02 EST&quot;
+## [23] &quot;2017-02-20 10:41:56 EST&quot; &quot;2017-02-20 10:41:56 EST&quot;
+## [25] &quot;2017-02-20 13:11:24 EST&quot; &quot;2017-02-20 13:11:24 EST&quot;
+## [27] &quot;2017-02-20 13:56:37 EST&quot; &quot;2017-02-20 13:56:37 EST&quot;
+## [29] &quot;2017-02-20 15:17:26 EST&quot; &quot;2017-02-20 15:17:26 EST&quot;
+## [31] &quot;2017-02-21 07:00:41 EST&quot; &quot;2017-02-21 07:00:41 EST&quot;
+## [33] &quot;2017-02-21 07:43:44 EST&quot; &quot;2017-02-21 07:43:44 EST&quot;
+## [35] &quot;2017-02-21 09:04:46 EST&quot; &quot;2017-02-21 09:04:46 EST&quot;
+## [37] &quot;2017-02-21 10:08:40 EST&quot; &quot;2017-02-21 10:08:40 EST&quot;
+## [39] &quot;2017-02-21 14:15:55 EST&quot; &quot;2017-02-21 14:15:55 EST&quot;
+## [41] &quot;2017-02-21 15:02:09 EST&quot; &quot;2017-02-21 15:02:09 EST&quot;
+## [43] &quot;2017-02-21 16:31:13 EST&quot; &quot;2017-02-21 16:31:13 EST&quot;
+## [45] &quot;2017-02-21 17:59:48 EST&quot; &quot;2017-02-21 17:59:48 EST&quot;
+## [47] &quot;2017-03-18 10:28:47 EST&quot; &quot;2017-03-18 10:28:47 EST&quot;
+## [49] &quot;2017-03-19 07:15:41 EST&quot; &quot;2017-03-19 07:15:41 EST&quot;
+## [51] &quot;2017-03-19 07:53:53 EST&quot; &quot;2017-03-19 07:53:53 EST&quot;
+## [53] &quot;2017-03-19 10:42:27 EST&quot; &quot;2017-03-19 10:42:27 EST&quot;
+## [55] &quot;2017-03-19 15:10:20 EST&quot; &quot;2017-03-19 15:10:20 EST&quot;
+## [57] &quot;2017-03-20 06:21:35 EST&quot; &quot;2017-03-20 06:21:35 EST&quot;
+## [59] &quot;2017-03-20 09:19:54 EST&quot; &quot;2017-03-20 09:19:54 EST&quot;
+## [61] &quot;2017-03-20 16:05:41 EST&quot; &quot;2017-03-20 16:05:41 EST&quot;
+## [63] &quot;2017-03-21 09:45:38 EST&quot; &quot;2017-03-21 09:45:38 EST&quot;
+##  [1] &quot;2017-02-18 15:38:05 EST&quot; &quot;2017-02-18 15:38:05 EST&quot;
+##  [3] &quot;2017-02-18 16:56:24 EST&quot; &quot;2017-02-18 16:56:24 EST&quot;
+##  [5] &quot;2017-02-18 17:15:41 EST&quot; &quot;2017-02-18 17:15:41 EST&quot;
+##  [7] &quot;2017-02-19 12:03:17 EST&quot; &quot;2017-02-19 12:03:17 EST&quot;
+##  [9] &quot;2017-02-19 16:05:19 EST&quot; &quot;2017-02-19 16:05:19 EST&quot;
+## [11] &quot;2017-02-19 16:10:31 EST&quot; &quot;2017-02-19 16:10:31 EST&quot;
+## [13] &quot;2017-02-19 18:14:36 EST&quot; &quot;2017-02-19 18:14:36 EST&quot;
+## [15] &quot;2017-03-18 10:44:43 EST&quot; &quot;2017-03-18 10:44:43 EST&quot;
+## [17] &quot;2017-03-18 15:53:12 EST&quot; &quot;2017-03-18 15:53:12 EST&quot;
+## [19] &quot;2017-03-19 12:22:51 EST&quot; &quot;2017-03-19 12:22:51 EST&quot;
+## [21] &quot;2017-03-19 14:56:07 EST&quot; &quot;2017-03-19 14:56:07 EST&quot;
+## [23] &quot;2017-03-20 14:24:45 EST&quot; &quot;2017-03-20 14:24:45 EST&quot;
+## [25] &quot;2017-03-20 14:53:22 EST&quot; &quot;2017-03-20 14:53:22 EST&quot;
+## [27] &quot;2017-03-20 16:27:57 EST&quot; &quot;2017-03-20 16:27:57 EST&quot;
+## [29] &quot;2017-03-21 08:44:31 EST&quot; &quot;2017-03-21 08:44:31 EST&quot;
+## [31] &quot;2017-03-21 08:44:36 EST&quot; &quot;2017-03-21 08:44:36 EST&quot;
+##  [1] &quot;2017-02-18 16:56:16 EST&quot; &quot;2017-02-18 16:56:16 EST&quot;
+##  [3] &quot;2017-02-19 07:52:58 EST&quot; &quot;2017-02-19 07:52:58 EST&quot;
+##  [5] &quot;2017-02-19 09:47:31 EST&quot; &quot;2017-02-19 09:47:31 EST&quot;
+##  [7] &quot;2017-02-19 15:10:57 EST&quot; &quot;2017-02-19 15:10:57 EST&quot;
+##  [9] &quot;2017-02-19 17:01:58 EST&quot; &quot;2017-02-19 17:01:58 EST&quot;
+## [11] &quot;2017-03-18 07:27:39 EST&quot; &quot;2017-03-18 07:27:39 EST&quot;
+## [13] &quot;2017-03-18 15:51:25 EST&quot; &quot;2017-03-18 15:51:25 EST&quot;
+## [15] &quot;2017-03-19 07:03:27 EST&quot; &quot;2017-03-19 07:03:27 EST&quot;
+## [17] &quot;2017-03-20 14:33:46 EST&quot; &quot;2017-03-20 14:33:46 EST&quot;
+## [1] &quot;2017-02-19 09:48:55 EST&quot;
+##  [1] &quot;2017-03-18 11:51:39 EST&quot; &quot;2017-03-18 15:49:11 EST&quot;
+##  [3] &quot;2017-03-18 17:39:10 EST&quot; &quot;2017-03-19 11:30:46 EST&quot;
+##  [5] &quot;2017-03-19 14:06:35 EST&quot; &quot;2017-03-19 16:03:38 EST&quot;
+##  [7] &quot;2017-03-19 17:56:53 EST&quot; &quot;2017-03-20 10:24:17 EST&quot;
+##  [9] &quot;2017-03-20 13:23:53 EST&quot; &quot;2017-03-20 16:14:41 EST&quot;
+## [11] &quot;2017-03-20 17:50:04 EST&quot;
+## [1] NA NA NA
+## [1] NA NA NA NA NA NA NA NA
+## [1] NA NA NA NA NA NA NA NA NA
+## [1] NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [1] NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA
+## [1] NA NA NA NA NA NA NA NA
+## [1] NA
+## [1] &quot;2017-03-18 09:24:14 EST&quot; &quot;2017-03-18 13:39:57 EST&quot;
+## [3] &quot;2017-03-19 11:24:14 EST&quot; &quot;2017-03-19 14:57:39 EST&quot;
+## [5] &quot;2017-03-20 08:18:14 EST&quot; &quot;2017-03-20 16:04:04 EST&quot;
+## [7] &quot;2017-03-21 08:19:29 EST&quot;
+## [1] NA NA NA NA
+## [1] NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+## [1] NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA
+##  [1] NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA NA</code></pre>
+<pre class="r"><code>int_gps&lt;-int_gps %&gt;% filter(!ID  %in% too_close$ID)
+
+#drop without hummingbird data
+int_gps&lt;-int_gps %&gt;% filter(!is.na(hummingbird))
+
+#missing gps data
+paste(int_gps %&gt;% filter(is.na(lon)) %&gt;% nrow(.), &quot;records missing gps data&quot;)</code></pre>
+<pre><code>## [1] &quot;986 records missing gps data&quot;</code></pre>
+<pre class="r"><code>print(&quot;Missing GPS records by site&quot;)</code></pre>
+<pre><code>## [1] &quot;Missing GPS records by site&quot;</code></pre>
+<pre class="r"><code>int_gps %&gt;% filter(is.na(lon)) %&gt;% group_by(site,Camera_ID) %&gt;% summarize(n=n())</code></pre>
+<pre><code>## # A tibble: 97 x 3
+## # Groups:   site [?]
+##            site             Camera_ID     n
+##           &lt;chr&gt;                 &lt;chr&gt; &lt;int&gt;
+##  1 LasGralarias LasGralarias_GRAL2102     3
+##  2 LasGralarias LasGralarias_GRAL2104    43
+##  3 LasGralarias LasGralarias_GRAL2106     4
+##  4 LasGralarias LasGralarias_GRAL2406     4
+##  5 LasGralarias LasGralarias_GRAL2408     1
+##  6 LasGralarias LasGralarias_GRAL2806    11
+##  7 LasGralarias LasGralarias_GRAL3006    10
+##  8 LasGralarias LasGralarias_GRAL3903     5
+##  9 LasGralarias LasGralarias_GRAL3905     1
+## 10 LasGralarias LasGralarias_GRAL3906     2
+## # ... with 87 more rows</code></pre>
+</div>
+<div id="write-to-file-2" class="section level2">
+<h2>Write to file</h2>
+<pre class="r"><code>#write to dropbox
+write.csv(int_gps,&quot;/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProjectCleaned/Interactions.csv&quot;)
+
+#write to shiny server
+write.csv(int_gps,&quot;HummingbirdData/Interactions.csv&quot;)</code></pre>
 </div>
 </div>
 
@@ -234,7 +1739,7 @@ $(document).ready(function () {
   (function () {
     var script = document.createElement("script");
     script.type = "text/javascript";
-    script.src  = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
     document.getElementsByTagName("head")[0].appendChild(script);
   })();
 </script>

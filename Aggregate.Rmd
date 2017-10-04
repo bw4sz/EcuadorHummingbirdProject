@@ -16,7 +16,7 @@ library(chron)
 library(readxl)
 library(taxize)
 
-basename="C:/Users/Ben/Dropbox/HummingbirdProject/Data/"
+basename="/Users/Ben/Dropbox/HummingbirdProject/Data/"
 ```
 
 #GPS Data
@@ -33,16 +33,24 @@ wayfiles<-function(x){
     if("cmt" %in% (colnames(k))){
       k$time<-k$cmt
     }
+    
+    #remove some generic files
     return(k)
   }
 wpoints<-lapply(allwaypoints,wayfiles)
 wpoints<-wpoints[!sapply(wpoints,length)==1]
 
-wpoints<-lapply(wpoints,function(x){
-  k<-x %>% dplyr::select(lon,lat,elevation=ele,time,waypoint=name,site)
-})
-
 wpoints<-rbind_all(wpoints)
+
+#strip those points with no time or elevation
+missing_elev<-wpoints %>% filter(is.na(ele))
+write.csv(missing_elev,"MissingElevation.csv")
+
+wpoints<-wpoints %>% filter(!is.na(ele))
+wpoints<-wpoints %>% filter(!is.na(time))
+
+wpoints$waypoint<-wpoints$name
+
 ```
 
 ```{r}
@@ -88,7 +96,12 @@ get_date<-function(x){
   b<-strsplit(as.character(x),"T")[[1]][1]
   mnh<-strsplit(b," ")
   mn<-strsplit(mnh[[1]][1],"-")
-  mn[[1]][2]<-as.character(mt$Month[mt$Spanish %in% mn[[1]][2]])
+  
+  #three letter abbreviations in two different languages, its a monster
+  if(mn[[1]][2] %in% mt$Spanish){
+      mn[[1]][2]<-as.character(mt$Month[mt$Spanish %in% mn[[1]][2]])
+  }
+  
   paste(mn[[1]],collapse="-")
   datet<-format(strptime(b,"%d-%b-%y"),"%d/%m/%Y")
   return(datet)
@@ -108,7 +121,7 @@ wpoints<-wpoints[!duplicated(wpoints),]
 
 ```{r}
 #write gps points
-write.csv(wpoints,"C:/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProjectCleaned/GPS.csv")
+write.csv(wpoints,"/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProjectCleaned/GPS.csv")
 
 #Write in case we want to visualize with the shiny data
 write.csv(wpoints,"HummingbirdData/GPS.csv")
@@ -120,6 +133,7 @@ write.csv(wpoints,"HummingbirdData/GPS.csv")
 transect_files<-list.files(basename,recursive=TRUE,pattern="transect_",full.names=T)
 
 transect_files<-transect_files[!str_detect(transect_files,"~")]
+transect_files<-transect_files[!str_detect(transect_files,"metadata")]
 
 transect_xlsx<-lapply(transect_files,function(x){
   
@@ -131,14 +145,23 @@ transect_xlsx<-lapply(transect_files,function(x){
     y$waypoint<-as.character(y$waypoint)
     y$total_flowers<-as.character(y$total_flowers)
     y$height<-as.character(y$height)
+    y$count_method<-as.character(y$count_method)
+    y$flower_unit<-as.character(y$flower_unit)
+    y$flower_count1<-as.character(y$flower_count1)
+
 
   }
   if(str_detect(x,".csv")){
+    
     y<-read.csv(x)
     
     #turn waypoints to character for the moment
     y$waypoint<-as.character(y$waypoint)
     y$total_flowers<-as.character(y$total_flowers)
+    y$flower_unit<-as.character(y$flower_unit)
+    y$flower_count1<-as.character(y$flower_count1)
+
+
   }
   
   return(y)
@@ -165,6 +188,8 @@ tropicos<-sources$id[sources$title == 'Tropicos - Missouri Botanical Garden']
 transect_data$plant_field_name<-factor(transect_data$plant_field_name)
 tran_levels<-levels(transect_data$plant_field_name)
 
+#check for empty cells
+tran_levels<-tran_levels[!tran_levels %in% c(""," ")]
 tran_taxize<-list()
 for (x in 1:length(tran_levels)){
 Sys.sleep(0.5)
@@ -218,11 +243,12 @@ for (x in levels(transect_data$hummingbird)){
 
 ```{r}
 transect_data$Transect_ID<-paste(transect_data$site,transect_data$date,transect_data$waypoint,sep="_")
-transect_gps<-transect_data %>% left_join(wpoints,by="Transect_ID") %>% select(-time,-waypoint.x,waypoint=waypoint.y,-site.y,site=site.x)
+transect_gps<-transect_data %>% left_join(wpoints,by="Transect_ID") %>% select(-waypoint.x,waypoint=waypoint.y,site=site.x,-site.y)
 
-paste(missing<-transect_gps %>% filter(is.na(lon)) %>% nrow(.), "transect points missing GPS data")
+paste(missing<-transect_gps %>% filter(is.na(lon)) %>% nrow(.), "transect points", "out of", nrow(transect_gps), "missing GPS data")
+missing_transect_gps<-transect_gps %>% filter(is.na(lon)) %>% group_by(site,date) %>% summarize(n=n())
 
-transect_gps %>% filter(is.na(lon)) %>% group_by(site,date) %>% summarize(n=n())
+write.csv(missing_transect_gps,"missing_transect_dates.csv")
 ```
 
 
@@ -239,13 +265,13 @@ plant_transects<-transect_gps %>% filter(!plant_field_name=="") %>% filter(!is.n
 
 ```{r}
 #plants
-write.csv(hummingbird_transects,"C:/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProjectCleaned/HummingbirdTransects.csv")
+write.csv(hummingbird_transects,"/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProjectCleaned/HummingbirdTransects.csv")
 
 #write to shiny server
 write.csv(hummingbird_transects,"HummingbirdData/HummingbirdTransects.csv")
 
 #plants
-write.csv(plant_transects,"C:/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProjectCleaned/PlantTransects.csv")
+write.csv(plant_transects,"/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProjectCleaned/PlantTransects.csv")
 
 #write to shiny server
 write.csv(plant_transects,"HummingbirdData/PlantTransects.csv")
@@ -335,7 +361,7 @@ camera_gps %>% filter(is.na(lon)) %>% group_by(site) %>% summarize(n=n())
 
 ```{r}
 #write to dropbox
-write.csv(camera_dat,"C:/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProjectCleaned/Cameras.csv")
+write.csv(camera_dat,"/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProjectCleaned/Cameras.csv")
 
 #write to shiny server
 write.csv(camera_dat,"HummingbirdData/Cameras.csv")
@@ -414,22 +440,29 @@ int_gps<-int_data %>% left_join(tojoin,by="Camera_ID")
 ```
 
 ```{r}
+#label events
+int_gps$ID=1:nrow(int_gps)
+
 #interactions within 20 seconds are condensced to the same event
 int_gps$timestamp<-as.POSIXct(paste(int_gps$date,int_gps$time),format=" %d/%m/%Y %H:%M:%S",tz="EST")
 
-difftimeall<-function(x){
+difftimeall<-function(x,ID){
+  print(x)
   out<-c()
-  out[1]<-NA
-  for(i in 1:length(x)){
-    out[i+1]<-difftime(x[i+1],x[i],units="mins")
+  if(length(x)==1){
+    out<-NA
+    return(data.frame(ID=ID,time_since=out))
   }
-  return(data.frame(time_since=out))
+    for(i in 2:length(x)){
+      out[i]<-difftime(x[i],x[i-1],units="mins")
+    }
+  return(data.frame(ID=ID,time_since=out))
 }
 
 #remove observations within 1 minute
-too_close<-int_gps %>% group_by(Camera_ID) %>% arrange(timestamp) %>% do(difftimeall(.$timestamp)) %>% filter(time_since<1) %>% .$ID
+too_close<-int_gps %>% group_by(Camera_ID) %>% arrange(timestamp) %>% do(difftimeall(.$timestamp,.$ID)) %>% filter(time_since<1)  
 
-int_gps<-int_gps %>% filter(!Camera_ID %in% too_close)
+int_gps<-int_gps %>% filter(!ID  %in% too_close$ID)
 
 #drop without hummingbird data
 int_gps<-int_gps %>% filter(!is.na(hummingbird))
@@ -445,7 +478,7 @@ int_gps %>% filter(is.na(lon)) %>% group_by(site,Camera_ID) %>% summarize(n=n())
 
 ```{r}
 #write to dropbox
-write.csv(int_gps,"C:/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProjectCleaned/Interactions.csv")
+write.csv(int_gps,"/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProjectCleaned/Interactions.csv")
 
 #write to shiny server
 write.csv(int_gps,"HummingbirdData/Interactions.csv")

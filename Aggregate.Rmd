@@ -3,6 +3,8 @@ title: "AggregateData"
 author: "Ben Weinstein"
 date: "May 2, 2017"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -15,7 +17,7 @@ library(stringr)
 library(chron)
 library(readxl)
 library(taxize)
-
+library(anytime)
 basename="/Users/Ben/Dropbox/HummingbirdProject/Data/"
 ```
 
@@ -29,6 +31,10 @@ allwaypoints<-list.files(basename,recursive=TRUE,full.name=TRUE,pattern=".gpx")
 #read in waypoints
 wayfiles<-function(x){
     try(k<-readGPX(x,waypoints=TRUE)$waypoints)
+    if(!exists("k")){
+      print("missing")
+      return(NULL)
+    }
     k$site<-str_match(x,"(\\w+)/waypoints")[2]
     if("cmt" %in% (colnames(k))){
       k$time<-k$cmt
@@ -51,72 +57,46 @@ wpoints<-wpoints %>% filter(!is.na(time))
 
 wpoints$waypoint<-wpoints$name
 
-```
+#Give it a try
+wpoints$timestamp<-anytime(wpoints$time)
+missing<-wpoints %>% filter(is.na(timestamp)) %>% select(time) %>% .$time
 
-```{r}
-#Standardize time field
-
-get_time<-function(x){
-  
-  if(nchar(x)==20){
-    b<-strsplit(as.character(x),"T")[[1]][2]
-    #remove the z
-    b<-strsplit(as.character(b),"Z")[[1]][1]
-    timet<-format(strptime(b,"%H:%M:%S"),"%H:%M:%S")
-    return(timet)
-    }
-
-#poco de choco string, ask nicole to change her GPS to english abbreviations?
-if(nchar(x) %in% c(17,18)){
-  timet<-strsplit(x," ")[[1]][[2]]
-  return(timet)
-}
- 
-  return(NA) 
-
+for(x in missing){
+  wpoints$timestamp[wpoints$time %in% x]<-as.POSIXct(x,format="%d-%b-%y %H:%M:%S")
 }
 
-wpoints$time_gps<-sapply(wpoints$time,get_time)
-```
+#look again
+missing<-wpoints %>% filter(is.na(timestamp)) %>% select(time) %>% .$time
 
-```{r}
-#spanish lookup table
-mt<-data.frame(Month=month.abb,Spanish=c("ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"))
-
-#standardize date field
-get_date<-function(x){
-  if(nchar(x)==20){
-    b<-strsplit(as.character(x),"T")[[1]][1]
-    #remove the z
-    datet<-format(strptime(b,"%Y-%m-%d"),"%d/%m/%Y")
-    return(datet)
-    }
-
-  if(nchar(x) %in% c(17,18)){
-  b<-strsplit(as.character(x),"T")[[1]][1]
-  mnh<-strsplit(b," ")
-  mn<-strsplit(mnh[[1]][1],"-")
-  
-  #three letter abbreviations in two different languages, its a monster
-  if(mn[[1]][2] %in% mt$Spanish){
-      mn[[1]][2]<-as.character(mt$Month[mt$Spanish %in% mn[[1]][2]])
-  }
-  
-  paste(mn[[1]],collapse="-")
-  datet<-format(strptime(b,"%d-%b-%y"),"%d/%m/%Y")
-  return(datet)
-  }
-  return(NA)
+#some missing april data in spanish
+for(x in missing){
+  wpoints$timestamp[wpoints$time %in% x]<-as.POSIXct(str_replace(x,"ABR","APR"),format="%d-%b-%y %H:%M:%S")
 }
 
-wpoints$date_gps<-sapply(wpoints$time,get_date)
+#look again
+missing<-wpoints %>% filter(is.na(timestamp)) %>% select(time) %>% .$time
 
+#That looks sufficient for covering dates.
+wpoints<-wpoints %>% filter(!is.na(timestamp))
+
+#turn to numeric if has a leading 0, 006 -> 6
+wpoints$waypoint[substring(wpoints$waypoint,1,1)=="0"]<-as.numeric(wpoints$waypoint[substring(wpoints$waypoint,1,1)=="0"])
+
+#Create ids
 #create site id, month, year waypoint combination.
-wpoints$Transect_ID<-paste(wpoints$site,wpoints$date_gps,wpoints$waypoint,sep="_")
-wpoints$Camera_ID<-paste(wpoints$site,wpoints$waypoint,sep="_")
+wpoints$Month<-months(wpoints$timestamp)
 
-#delete duplicates
+#delete duplicates and unneeded columns
 wpoints<-wpoints[!duplicated(wpoints),]
+
+wpoints<-wpoints %>% select(-sym,-type,-extensions,-link,-cmt,-desc,-name)
+
+#if there are multiple points per waypoint, take the latest in time.
+return_latest<-function(x){
+  df<-x %>% arrange(desc(time)) %>% head(1)
+  return(df)
+}
+wpoints<-wpoints %>% group_by(site,Month,waypoint) %>% do(return_latest(.))
 ```
 
 ```{r}
@@ -135,12 +115,21 @@ transect_files<-list.files(basename,recursive=TRUE,pattern="transect_",full.name
 transect_files<-transect_files[!str_detect(transect_files,"~")]
 transect_files<-transect_files[!str_detect(transect_files,"metadata")]
 
+#bind site name by folder
+
 transect_xlsx<-lapply(transect_files,function(x){
   
   print(x)
   if(str_detect(x,".xlsx")){
     y<-read_xlsx(x)
     
+    #if empty, just move to next file
+    if(nrow(y)==0){
+      return(y)
+    }
+    
+    y$site<-str_match(x,"(\\w+)/transect")[2]
+
     #turn waypoints to character for the moment
     y$waypoint<-as.character(y$waypoint)
     y$total_flowers<-as.character(y$total_flowers)
@@ -148,30 +137,40 @@ transect_xlsx<-lapply(transect_files,function(x){
     y$count_method<-as.character(y$count_method)
     y$flower_unit<-as.character(y$flower_unit)
     y$flower_count1<-as.character(y$flower_count1)
-
+    y$date<-as.character(y$date)
 
   }
   if(str_detect(x,".csv")){
     
     y<-read.csv(x)
-    
+    y$site<-str_match(x,"(\\w+)/transect")[2]
+
     #turn waypoints to character for the moment
     y$waypoint<-as.character(y$waypoint)
     y$total_flowers<-as.character(y$total_flowers)
     y$flower_unit<-as.character(y$flower_unit)
     y$flower_count1<-as.character(y$flower_count1)
 
-
   }
   
   return(y)
 })
 
+#remove empty files
+transect_xlsx<-transect_xlsx[!sapply(transect_xlsx,nrow)==0]
 #Combine files
 transect_data<-bind_rows(transect_xlsx)
 
 #turn total flowers back to numeric
 transect_data$total_flowers<-as.numeric(transect_data$total_flowers)
+
+#If revised plant name exists, replace
+transect_data$final_plant_name<-transect_data$plant_field_name
+for(x in 1:nrow(transect_data)){
+  if(!is.na(transect_data$revised_plant_name[x])){
+    transect_data$final_plant_name[x]<-transect_data$revised_plant_name[x]
+  }
+}
 ```
 
 ## Cleaning
@@ -181,37 +180,35 @@ transect_data$total_flowers<-as.numeric(transect_data$total_flowers)
 transect_data$Month<-months(strptime(transect_data$date,"%d/%m/%Y"))
 transect_data$Year<-years(strptime(transect_data$date,"%d/%m/%Y"))
 
-#TODO taxize and name standardization
+#Look up names
 sources <- gnr_datasources()
 tropicos<-sources$id[sources$title == 'Tropicos - Missouri Botanical Garden']
 
-transect_data$plant_field_name<-factor(transect_data$plant_field_name)
-tran_levels<-levels(transect_data$plant_field_name)
+transect_data$final_plant_name<-factor(transect_data$final_plant_name)
+tran_levels<-levels(transect_data$final_plant_name)
 
 #check for empty cells
 tran_levels<-tran_levels[!tran_levels %in% c(""," ")]
-tran_taxize<-list()
-for (x in 1:length(tran_levels)){
-Sys.sleep(0.5)
-tran_taxize[[x]]<-gnr_resolve(tran_levels[x],best_match_only=T,canonical = TRUE,data_source_ids=tropicos)
-}
-tran_taxize<-bind_rows(tran_taxize)
+
+tran_taxize<-gnr_resolve(tran_levels,best_match_only=T,canonical = TRUE,data_source_ids=tropicos)
 
 #only keep species with matched double names
 plants_keep<-tran_taxize$submitted_name[sapply(strsplit(tran_taxize$matched_name2," "),length)==2]
 
 plants_missing<-tran_taxize$submitted_name[!sapply(strsplit(tran_taxize$matched_name2," "),length)==2]
 
-#get missing data
-transect_unidentified<-transect_data %>% filter(!plant_field_name %in% plants_keep) %>% select(site,plant_field_name) %>% distinct() %>% filter(!is.na(plant_field_name))
+#Create missing plant index.
+plant_tax_needed<-transect_data %>% filter(final_plant_name %in% plants_missing) %>% distinct(site,final_plant_name) 
+write.csv(plant_tax_needed,"missing_taxonomy.csv")
 
-transect_data<-transect_data %>% filter(plant_field_name %in% plants_keep) %>% 
-select(date,Month,Year,site,plant_field_name,total_flowers,waypoint,height,hummingbird,comment) %>% droplevels()
+transect_data<-transect_data %>% filter(final_plant_name %in% plants_keep) %>% 
+select(date,Month,Year,site,final_plant_name,total_flowers,waypoint,height,hummingbird,comment) %>% droplevels()
 
 #fix mistakes
 
-for (x in levels(transect_data$plant_field_name)){
-  levels(transect_data$plant_field_name)[levels(transect_data$plant_field_name) %in% x]<-tran_taxize[tran_taxize$submitted_name %in% x,"matched_name2"]  
+#for formatted lavels
+for (x in levels(transect_data$final_plant_name)){
+  levels(transect_data$final_plant_name)[levels(transect_data$final_plant_name) %in% x]<-tran_taxize %>% filter(submitted_name %in% x) %>% .$matched_name2
 }
 
 #droplevels
@@ -225,16 +222,13 @@ transect_data$hummingbird<-factor(transect_data$hummingbird)
 hum_levels<-levels(transect_data$hummingbird)
 hum_levels<-hum_levels[!hum_levels==""]
 
-hum_taxize<-list()
-for (x in 1:length(hum_levels)){
-  print(hum_levels[x])
-hum_taxize[[x]]<-gnr_resolve(hum_levels[x],best_match_only=T,canonical = TRUE)
-}
-hum_taxize<-bind_rows(hum_taxize)
+hum_taxize<-gnr_resolve(hum_levels,best_match_only=T,canonical = TRUE)
 
-#fix formatted lavels
+#fix formatted levels
+transect_data<-transect_data %>% filter(hummingbird %in% c(hum_taxize$user_supplied_name,NA)) %>% droplevels()
+
 for (x in levels(transect_data$hummingbird)){
-  levels(transect_data$hummingbird)[levels(transect_data$hummingbird) %in% x]<-hum_taxize[hum_taxize$user_supplied_name %in% x,"matched_name2"]  
+      levels(transect_data$hummingbird)[levels(transect_data$hummingbird) %in% x]<-hum_taxize %>% filter(user_supplied_name %in% x) %>% .$matched_name2
 }
 
 ```
@@ -242,15 +236,13 @@ for (x in levels(transect_data$hummingbird)){
 ## Combine with gps data
 
 ```{r}
-transect_data$Transect_ID<-paste(transect_data$site,transect_data$date,transect_data$waypoint,sep="_")
-transect_gps<-transect_data %>% left_join(wpoints,by="Transect_ID") %>% select(-waypoint.x,waypoint=waypoint.y,site=site.x,-site.y)
+transect_gps<-transect_data %>% left_join(wpoints,by=c("site","Month","waypoint"))
 
 paste(missing<-transect_gps %>% filter(is.na(lon)) %>% nrow(.), "transect points", "out of", nrow(transect_gps), "missing GPS data")
-missing_transect_gps<-transect_gps %>% filter(is.na(lon)) %>% group_by(site,date) %>% summarize(n=n())
+missing_transect_gps<-transect_gps %>% filter(is.na(lon)) %>% group_by(site,date) %>% summarize(n=n()) %>% arrange(desc(n))
 
 write.csv(missing_transect_gps,"missing_transect_dates.csv")
 ```
-
 
 ## Divide into plant and hummingbird transects
 
@@ -258,7 +250,7 @@ write.csv(missing_transect_gps,"missing_transect_dates.csv")
 hummingbird_transects<-transect_gps %>% filter(!hummingbird=="")
 
 #What's up with cambugan, alot of no total flower counts?
-plant_transects<-transect_gps %>% filter(!plant_field_name=="") %>% filter(!is.na(total_flowers))
+plant_transects<-transect_gps %>% filter(!final_plant_name=="") %>% filter(!is.na(total_flowers))
 ```
 
 ## Write to file
@@ -283,9 +275,17 @@ write.csv(plant_transects,"HummingbirdData/PlantTransects.csv")
 camera_files<-list.files(basename,recursive=TRUE,pattern="cameras",full.names = T)
 
 camera_xlsx<-lapply(camera_files,function(x){
-  
+  print(x)
   if(str_detect(x,".xlsx")){
+    
     j<-read_xlsx(x)
+    #if empty, just move to next file
+    if(nrow(j)==0){
+      return(j)
+    }
+    
+    #format columns
+    j$site<-str_match(x,"(\\w+)/cameras")[2]
     j$waypoint<-as.character(j$waypoint)
     j$card_id<-as.character(j$card_id)
     j$start_time<-as.character(j$start_time)
@@ -299,6 +299,7 @@ camera_xlsx<-lapply(camera_files,function(x){
   
   if(str_detect(x,".csv")){
     j<-read.csv(x)
+    j$site<-str_match(x,"(\\w+)/cameras")[2]
     j$waypoint<-as.character(j$waypoint)
     j$card_id<-as.character(j$card_id)
     j$start_time<-as.character(j$start_time)
@@ -310,36 +311,45 @@ camera_xlsx<-lapply(camera_files,function(x){
 })
 
 camera_dat<-bind_rows(camera_xlsx)
-```
 
-## Cleaning
+#select desired columns
+camera_dat<-camera_dat %>% select(start_date,start_time,end_date,end_time,site,waypoint,plant_field_name,revised_plant_name)
 
-```{r}
 #Month and year column
 camera_dat$Month<-months(strptime(camera_dat$start_date,"%d/%m/%Y"))
 camera_dat$Year<-years(strptime(camera_dat$start_date,"%d/%m/%Y"))
+```
+
+## Taxonomy Cleaning
+
+```{r}
+
+#If revised plant name exists, replace
+camera_dat$final_plant_name<-camera_dat$plant_field_name
+for(x in 1:nrow(camera_dat)){
+  if(!is.na(camera_dat$revised_plant_name[x])){
+    camera_dat$final_plant_name[x]<-camera_dat$revised_plant_name[x]
+  }
+}
 
 ##need to standardize plant species to read from revised plant names
-camera_dat$plant_field_name<-factor(camera_dat$plant_field_name)
+camera_dat$final_plant_name<-factor(camera_dat$final_plant_name)
 
-cam_levels<-levels(camera_dat$plant_field_name)
-cam_taxize<-list()
-for (x in 1:length(cam_levels)){
-cam_taxize[[x]]<-gnr_resolve(cam_levels[x],best_match_only=T,canonical = TRUE,data_source_ids=tropicos)
-}
-cam_taxize<-bind_rows(cam_taxize)
+camera_dat<-camera_dat %>% filter(!plant_field_name %in% " ")
+
+cam_levels<-levels(camera_dat$final_plant_name)
+cam_taxize<-gnr_resolve(cam_levels,best_match_only=T,canonical = TRUE,data_source_ids=tropicos)
 
 #only keep species with matched double names
 plants_keep<-cam_taxize$submitted_name[sapply(strsplit(cam_taxize$matched_name2," "),length)==2]
 plants_missing<-cam_taxize$submitted_name[!sapply(strsplit(cam_taxize$matched_name2," "),length)==2]
 
-camera_missing<-camera_dat %>% filter(!plant_field_name %in% plants_keep) %>% select(site,plant_field_name) %>% distinct()
-
-camera_dat<-camera_dat %>% filter(plant_field_name %in% plants_keep) %>% droplevels()
+camera_missing<-camera_dat %>% filter(!final_plant_name %in% plants_keep) %>% select(site,final_plant_name) %>% distinct()
+camera_dat<-camera_dat %>% filter(final_plant_name %in% plants_keep) %>% droplevels()
 
 #for formatted lavels
-for (x in levels(camera_dat$plant_field_name)){
-  levels(camera_dat$plant_field_name)[levels(camera_dat$plant_field_name) %in% x]<-cam_taxize[cam_taxize$submitted_name %in% x,"matched_name2"]  
+for (x in levels(camera_dat$final_plant_name)){
+  levels(camera_dat$final_plant_name)[levels(camera_dat$final_plant_name) %in% x]<-cam_taxize %>% filter(submitted_name %in% x) %>% .$matched_name2
 }
 
 camera_dat<-droplevels(camera_dat)
@@ -348,12 +358,9 @@ camera_dat<-droplevels(camera_dat)
 ## Combine with gps data
 
 ```{r}
-camera_dat$Camera_ID<-paste(camera_dat$site,camera_dat$waypoint,sep="_")
-camera_gps<-camera_dat %>% left_join(wpoints,by="Camera_ID") %>% select(-time,-waypoint.x,waypoint=waypoint.y,site=site.x)
-
-paste(camera_gps %>% filter(is.na(lon)) %>% nrow(.), "camera points missing GPS data")
-
-camera_gps %>% filter(is.na(lon)) %>% group_by(site) %>% summarize(n=n())
+camera_gps<-camera_dat %>% select(-Month) %>% left_join(wpoints,by=c("site","waypoint")) 
+paste(camera_gps %>% filter(is.na(lon)) %>% nrow(.), "camera points missing GPS data from",  nrow(camera_gps))
+camera_gps %>% filter(is.na(lon)) %>% group_by(site) %>% summarize(n=n()) %>% arrange(desc(n))
 
 ```
 
@@ -372,15 +379,19 @@ write.csv(camera_dat,"HummingbirdData/Cameras.csv")
 ```{r}
 int_files<-list.files(basename,recursive=TRUE,pattern="observations",full.names = T)
 
+#TODO confirm with nicole that this can be dropped
+int_files<-int_files[!int_files %in% "/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco/Disturbio/foundframes/Disturbio/observations_UPDC-Disturbio.xlsx"]
+
 int_data<-lapply(int_files,function(x){
   print(x)
   if(str_detect(x,".xlsx")){
-    j<-read_xlsx(x)
+    j<-read_excel(x,trim_ws = T)
     try(j$site<-str_match(x,"(\\w+)/observations")[2],silent=T)
     j$time<-as.character(j$time)
     j$filename<-as.character(j$filename)
     j$date<-as.character(j$date)
     j$waypoint<-as.character(j$waypoint)
+    print(dim(j))
     return(j)
   }
   if(str_detect(x,".csv")){
@@ -401,25 +412,36 @@ int_data<-bind_rows(int_data)
 ## Cleaning
 
 ```{r}
+#conservatively remove questionable records
+int_data<-int_data %>% filter(!is.na(hummingbird))
+int_data$hummingbird[int_data$hummingbird %in% "Ocreatus underwoodi"]<-"Ocreatus underwoodii"
+#remove ? from names, treated as wildcard for taxize
+int_data<-int_data[!str_detect(int_data$hummingbird,"\\?"),] 
+
+#refactor
+int_data$hummingbird<-as.factor(int_data$hummingbird)
+
+#get species list
+int_levels<-levels(int_data$hummingbird)
+
+#fill in revised names
+int_data$revised_hummingbird[int_data$revised_hummingbird %in% c("h", " ","")]<-NA
+int_data[!is.na(int_data$revised_hummingbird),"hummingbird"]<-int_data$revised_hummingbird[!is.na(int_data$revised_hummingbird)]
 int_data[int_data$hummingbird %in% "","hummingbird"]<-NA
 int_data$hummingbird<-factor(int_data$hummingbird)
 
-int_levels<-levels(int_data$hummingbird)
-int_taxize<-list()
-for (x in 1:length(int_levels)){
-  Sys.sleep(0.5)
-  int_taxize[[x]]<-gnr_resolve(int_levels[x],best_match_only=T,canonical = TRUE)
-}
-int_taxize<-bind_rows(int_taxize)
+#lookup taxize
+int_taxize<-gnr_resolve(int_levels,best_match_only=T,canonical = TRUE)
 
 #only keep species with matched double names
 hum_keep<-int_taxize$submitted_name[sapply(strsplit(int_taxize$matched_name2," "),length)==2]
+hum_missing<-int_taxize$submitted_name[!sapply(strsplit(int_taxize$matched_name2," "),length)==2]
 
 int_data<-int_data %>% filter(hummingbird %in% hum_keep) %>% droplevels()
 
 #for formatted lavels
 for (x in levels(int_data$hummingbird)){
-  levels(int_data$hummingbird)[levels(int_data$hummingbird) %in% x]<-int_taxize[int_taxize$submitted_name %in% x,"matched_name2"]  
+  levels(int_data$hummingbird)[levels(int_data$hummingbird) %in% x]<-int_taxize %>% filter(submitted_name %in% x) %>% .$matched_name2  
 }
 
 int_data<-droplevels(int_data)
@@ -429,14 +451,43 @@ isclass<-tax_name(query = levels(int_data$hummingbird), get = "family", db = "nc
 troch_keep<-isclass %>% filter(family =="Trochilidae") %>% .$query
 
 int_data<-int_data %>% filter(hummingbird %in% troch_keep) %>% droplevels()
+
+#Holger had one month where he entered all the frames.
+#Loop through frames and remove consecutives.
+diff_frame<-function(x,ID){
+  framenum<-as.numeric(str_match(x,"(\\w+).jpg")[,2])
+  out<-c()
+  if(length(x)==1){
+    out<-NA
+    return(data.frame(ID=ID,frames_since=out))
+  }
+    for(i in 2:length(framenum)){
+      out[i]<-framenum[i]-framenum[i-1]
+    }
+  return(data.frame(ID=ID,frames_since=out))
+}
+
+int_data$ID<-1:nrow(int_data)
+too_close<-int_data %>% filter(date=="") %>% group_by(folder) %>% do(diff_frame(.$filename,.$ID)) %>% filter(frames_since > 0 & frames_since < 5) 
+int_data<-int_data %>% filter(!ID %in% too_close$ID) %>% select(-ID)
+
+#fill empty dates
+a<-int_data %>% filter(date=="") %>% mutate(newdate=str_match(folder,"/(\\d+)")[,2]) %>% .$newdate
+int_data[int_data$date %in% "","date"]<-format(as.POSIXct(a,format="%y%m%d",tz=""),"%d/%m%/%Y")
 ```
 
 ## Combine with camera data
 
 ```{r}
-int_data$Camera_ID<-paste(int_data$site,int_data$waypoint,sep="_")
-tojoin<-camera_gps %>% select(Camera_ID,plant_field_name,lon,lat,elevation)
-int_gps<-int_data %>% left_join(tojoin,by="Camera_ID")
+tojoin<-camera_gps %>% select(site,waypoint,final_plant_name,lon,lat,ele)
+int_gps<-int_data %>% left_join(tojoin,by=c("site","waypoint"))
+
+#TODO check replicates here
+int_gps<-int_gps[!duplicated(int_gps),]
+
+int_gps<-int_gps %>% select(folder,filename,date,time,waypoint,lon,lat,ele,hummingbird,revised_hummingbird,final_plant_name,sex,feeding_activity,piercing,comment,site)
+
+int_gps %>% group_by(waypoint) %>% summarize(n=n()) %>% arrange(desc(n))
 ```
 
 ```{r}
@@ -447,7 +498,6 @@ int_gps$ID=1:nrow(int_gps)
 int_gps$timestamp<-as.POSIXct(paste(int_gps$date,int_gps$time),format=" %d/%m/%Y %H:%M:%S",tz="EST")
 
 difftimeall<-function(x,ID){
-  print(x)
   out<-c()
   if(length(x)==1){
     out<-NA
@@ -460,18 +510,17 @@ difftimeall<-function(x,ID){
 }
 
 #remove observations within 1 minute
-too_close<-int_gps %>% group_by(Camera_ID) %>% arrange(timestamp) %>% do(difftimeall(.$timestamp,.$ID)) %>% filter(time_since<1)  
-
+too_close<-int_gps %>% group_by(site,waypoint) %>% arrange(timestamp) %>% do(difftimeall(.$timestamp,.$ID)) %>% filter(time_since<1)  
 int_gps<-int_gps %>% filter(!ID  %in% too_close$ID)
 
 #drop without hummingbird data
 int_gps<-int_gps %>% filter(!is.na(hummingbird))
 
 #missing gps data
-paste(int_gps %>% filter(is.na(lon)) %>% nrow(.), "records missing gps data")
+paste(int_gps %>% filter(is.na(lon)) %>% nrow(.), "records missing gps data", "from",nrow(int_gps))
 
 print("Missing GPS records by site")
-int_gps %>% filter(is.na(lon)) %>% group_by(site,Camera_ID) %>% summarize(n=n())
+int_gps %>% filter(is.na(lon)) %>% group_by(site) %>% summarize(n=n()) %>% arrange(desc(n))
 ```
 
 ## Write to file

@@ -23,22 +23,76 @@ wayfiles<-function(x){
     if("cmt" %in% (colnames(k))){
       k$time<-k$cmt
     }
+    
+    #remove some generic files
     return(k)
   }
 wpoints<-lapply(allwaypoints,wayfiles)
+```
+
+```
+## XML declaration allowed only at the start of the document
+```
+
+```
+## Error in FUN(X[[i]], ...): object 'k' not found
+```
+
+```r
 wpoints<-wpoints[!sapply(wpoints,length)==1]
-
-wpoints<-lapply(wpoints,function(x){
-  k<-x %>% dplyr::select(lon,lat,elevation=ele,time,waypoint=name,site)
-})
 ```
 
 ```
-## Error in overscope_eval_next(overscope, expr): object 'ele' not found
+## Error in eval(expr, envir, enclos): object 'wpoints' not found
 ```
 
 ```r
 wpoints<-rbind_all(wpoints)
+```
+
+```
+## Error in bind_rows_(x, id = id): object 'wpoints' not found
+```
+
+```r
+#strip those points with no time or elevation
+missing_elev<-wpoints %>% filter(is.na(ele))
+```
+
+```
+## Error in eval(lhs, parent, parent): object 'wpoints' not found
+```
+
+```r
+write.csv(missing_elev,"MissingElevation.csv")
+```
+
+```
+## Error in is.data.frame(x): object 'missing_elev' not found
+```
+
+```r
+wpoints<-wpoints %>% filter(!is.na(ele))
+```
+
+```
+## Error in eval(lhs, parent, parent): object 'wpoints' not found
+```
+
+```r
+wpoints<-wpoints %>% filter(!is.na(time))
+```
+
+```
+## Error in eval(lhs, parent, parent): object 'wpoints' not found
+```
+
+```r
+wpoints$waypoint<-wpoints$name
+```
+
+```
+## Error in eval(expr, envir, enclos): object 'wpoints' not found
 ```
 
 
@@ -69,7 +123,7 @@ wpoints$time_gps<-sapply(wpoints$time,get_time)
 ```
 
 ```
-## Error in if (nchar(x) == 20) {: missing value where TRUE/FALSE needed
+## Error in lapply(X = X, FUN = FUN, ...): object 'wpoints' not found
 ```
 
 
@@ -90,7 +144,12 @@ get_date<-function(x){
   b<-strsplit(as.character(x),"T")[[1]][1]
   mnh<-strsplit(b," ")
   mn<-strsplit(mnh[[1]][1],"-")
-  mn[[1]][2]<-as.character(mt$Month[mt$Spanish %in% mn[[1]][2]])
+  
+  #three letter abbreviations in two different languages, its a monster
+  if(mn[[1]][2] %in% mt$Spanish){
+      mn[[1]][2]<-as.character(mt$Month[mt$Spanish %in% mn[[1]][2]])
+  }
+  
   paste(mn[[1]],collapse="-")
   datet<-format(strptime(b,"%d-%b-%y"),"%d/%m/%Y")
   return(datet)
@@ -102,25 +161,52 @@ wpoints$date_gps<-sapply(wpoints$time,get_date)
 ```
 
 ```
-## Error in if (nchar(x) == 20) {: missing value where TRUE/FALSE needed
+## Error in lapply(X = X, FUN = FUN, ...): object 'wpoints' not found
 ```
 
 ```r
 #create site id, month, year waypoint combination.
 wpoints$Transect_ID<-paste(wpoints$site,wpoints$date_gps,wpoints$waypoint,sep="_")
-wpoints$Camera_ID<-paste(wpoints$site,wpoints$waypoint,sep="_")
+```
 
+```
+## Error in paste(wpoints$site, wpoints$date_gps, wpoints$waypoint, sep = "_"): object 'wpoints' not found
+```
+
+```r
+wpoints$Camera_ID<-paste(wpoints$site,wpoints$waypoint,sep="_")
+```
+
+```
+## Error in paste(wpoints$site, wpoints$waypoint, sep = "_"): object 'wpoints' not found
+```
+
+```r
 #delete duplicates
 wpoints<-wpoints[!duplicated(wpoints),]
+```
+
+```
+## Error in eval(expr, envir, enclos): object 'wpoints' not found
 ```
 
 
 ```r
 #write gps points
 write.csv(wpoints,"/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProjectCleaned/GPS.csv")
+```
 
+```
+## Error in is.data.frame(x): object 'wpoints' not found
+```
+
+```r
 #Write in case we want to visualize with the shiny data
 write.csv(wpoints,"HummingbirdData/GPS.csv")
+```
+
+```
+## Error in is.data.frame(x): object 'wpoints' not found
 ```
 
 #Transect Data
@@ -138,6 +224,7 @@ transect_xlsx<-lapply(transect_files,function(x){
   if(str_detect(x,".xlsx")){
     y<-read_xlsx(x)
     
+    head(y)
     #turn waypoints to character for the moment
     y$waypoint<-as.character(y$waypoint)
     y$total_flowers<-as.character(y$total_flowers)
@@ -146,18 +233,16 @@ transect_xlsx<-lapply(transect_files,function(x){
     y$flower_unit<-as.character(y$flower_unit)
     y$flower_count1<-as.character(y$flower_count1)
 
-
   }
   if(str_detect(x,".csv")){
     
     y<-read.csv(x)
-    
+    head(y)
     #turn waypoints to character for the moment
     y$waypoint<-as.character(y$waypoint)
     y$total_flowers<-as.character(y$total_flowers)
     y$flower_unit<-as.character(y$flower_unit)
     y$flower_count1<-as.character(y$flower_count1)
-
 
   }
   
@@ -250,27 +335,26 @@ hum_taxize[[x]]<-gnr_resolve(hum_levels[x],best_match_only=T,canonical = TRUE)
 ## [1] "Adelomyia melanogenys"
 ## [1] "aglaiocercus coelestis"
 ## [1] "Aglaiocercus coelestis"
-## [1] "Aglaiocercus kingii"
-## [1] "Androdon aequatorialis"
 ## [1] "Boissonneaua flavescens"
 ## [1] "Boissonneaua jardini"
 ## [1] "Coeligena lutetiae"
+## [1] "Coeligena lutetiane"
 ## [1] "Coeligena torquata"
 ## [1] "Coeligena wilsoni"
 ## [1] "Colibri delphinae"
 ## [1] "Colibrí sp."
-## [1] "Diglossa lafresnayi"
-## [1] "Diglossa lafresnayii"
 ## [1] "Eriocnemis luciani"
 ## [1] "Eriocnemis nigrivestis"
+## [1] "Heliodoxa jacula"
+## [1] "Heliodoxa rubinoides"
 ## [1] "Lafresnaya lafresnayi"
 ## [1] "Metallura tyrianthina"
-## [1] "Methallura tyrianthina"
 ## [1] "Ocreatus underwoodii"
 ## [1] "Phaethornis syrmatophorus"
 ## [1] "Phaethornis yaruqui"
 ## [1] "Phaetornis syrmatophorus"
 ## [1] "Pterophanes cyanopterus"
+## [1] "Ramphomicron microrhynchum"
 ## [1] "Thalurania fannyi"
 ```
 
@@ -288,11 +372,11 @@ for (x in levels(transect_data$hummingbird)){
 
 ```r
 transect_data$Transect_ID<-paste(transect_data$site,transect_data$date,transect_data$waypoint,sep="_")
-transect_gps<-transect_data %>% left_join(wpoints,by="Transect_ID") %>% select(-time,-waypoint.x,waypoint=waypoint.y,-site.y,site=site.x)
+transect_gps<-transect_data %>% left_join(wpoints,by="Transect_ID") %>% select(-waypoint.x,waypoint=waypoint.y,site=site.x,-site.y)
 ```
 
 ```
-## Error in overscope_eval_next(overscope, expr): object 'waypoint.x' not found
+## Error in tbl_vars(y): object 'wpoints' not found
 ```
 
 ```r
@@ -386,7 +470,7 @@ write.csv(plant_transects,"HummingbirdData/PlantTransects.csv")
 camera_files<-list.files(basename,recursive=TRUE,pattern="cameras",full.names = T)
 
 camera_xlsx<-lapply(camera_files,function(x){
-  
+  print(x)
   if(str_detect(x,".xlsx")){
     j<-read_xlsx(x)
     j$waypoint<-as.character(j$waypoint)
@@ -411,7 +495,23 @@ camera_xlsx<-lapply(camera_files,function(x){
   }
   
 })
+```
 
+```
+## [1] "/Users/Ben/Dropbox/HummingbirdProject/Data//Cambugan/cameras_cambugan.xlsx"
+## [1] "/Users/Ben/Dropbox/HummingbirdProject/Data//LasGralarias/cameras_lasgralarias.xlsx"
+## [1] "/Users/Ben/Dropbox/HummingbirdProject/Data//Maquipucuna/cameras_Maquipucuna.csv"
+## [1] "/Users/Ben/Dropbox/HummingbirdProject/Data//MashpiCapuchin/cameras_MashpiCapuchin.xlsx"
+## [1] "/Users/Ben/Dropbox/HummingbirdProject/Data//MashpiLaguna/cameras_MashpiLaguna.xlsx"
+## [1] "/Users/Ben/Dropbox/HummingbirdProject/Data//Sachatamia/cameras_Sachatamia.xlsx"
+## [1] "/Users/Ben/Dropbox/HummingbirdProject/Data//SantaLuciaLower/cameras_SantaLuciaLower.csv"
+## [1] "/Users/Ben/Dropbox/HummingbirdProject/Data//SantaLuciaUpper/cameras_SantaLuciaUpper.csv"
+## [1] "/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco/cameras_UnPocoDelChoco.xlsx"
+## [1] "/Users/Ben/Dropbox/HummingbirdProject/Data//Verdecocha/cameras_Verdecocha.xlsx"
+## [1] "/Users/Ben/Dropbox/HummingbirdProject/Data//Yanacocha/cameras_Yanacocha.xlsx"
+```
+
+```r
 camera_dat<-bind_rows(camera_xlsx)
 ```
 
@@ -458,7 +558,7 @@ camera_gps<-camera_dat %>% left_join(wpoints,by="Camera_ID") %>% select(-time,-w
 ```
 
 ```
-## Error in overscope_eval_next(overscope, expr): object 'waypoint.x' not found
+## Error in tbl_vars(y): object 'wpoints' not found
 ```
 
 ```r
@@ -584,7 +684,17 @@ isclass<-tax_name(query = levels(int_data$hummingbird), get = "family", db = "nc
 
 ```
 ## 
+## Retrieving data for taxon 'Amazilia rosenbergi'
+```
+
+```
+## 
 ## Retrieving data for taxon 'Atlapetes tricolor'
+```
+
+```
+## 
+## Retrieving data for taxon 'Aulacorhynchus haematopygus'
 ```
 
 ```
@@ -619,7 +729,17 @@ isclass<-tax_name(query = levels(int_data$hummingbird), get = "family", db = "nc
 
 ```
 ## 
+## Retrieving data for taxon 'Diglossa sittoides'
+```
+
+```
+## 
 ## Retrieving data for taxon 'Doryfera ludovicae'
+```
+
+```
+## 
+## Retrieving data for taxon 'Doryfera ludoviciae'
 ```
 
 ```
@@ -776,7 +896,7 @@ int_data<-int_data %>% filter(hummingbird %in% troch_keep) %>% droplevels()
 
 ```r
 int_data$Camera_ID<-paste(int_data$site,int_data$waypoint,sep="_")
-tojoin<-camera_gps %>% select(Camera_ID,plant_field_name,lon,lat,elevation)
+tojoin<-camera_gps %>% select(Camera_ID,plant_field_name,lon,lat,ele)
 ```
 
 ```
@@ -812,7 +932,6 @@ int_gps$timestamp<-as.POSIXct(paste(int_gps$date,int_gps$time),format=" %d/%m/%Y
 
 ```r
 difftimeall<-function(x,ID){
-  print(x)
   out<-c()
   if(length(x)==1){
     out<-NA
@@ -841,6 +960,15 @@ int_gps<-int_gps %>% filter(!ID  %in% too_close$ID)
 ```
 
 ```r
+#Holger has one insane point, need to revise
+int_gps<-int_gps[!int_gps$hummingbird %in% "Ocreatus underwoodii" & !int_gps$plant_field_name %in% "Macleania recumbens",]
+```
+
+```
+## Error in eval(expr, envir, enclos): object 'int_gps' not found
+```
+
+```r
 #drop without hummingbird data
 int_gps<-int_gps %>% filter(!is.na(hummingbird))
 ```
@@ -851,7 +979,7 @@ int_gps<-int_gps %>% filter(!is.na(hummingbird))
 
 ```r
 #missing gps data
-paste(int_gps %>% filter(is.na(lon)) %>% nrow(.), "records missing gps data")
+paste(int_gps %>% filter(is.na(lon)) %>% nrow(.), "records missing gps data", "from",nrow(int_gps))
 ```
 
 ```

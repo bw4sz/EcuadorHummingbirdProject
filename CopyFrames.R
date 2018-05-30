@@ -2,18 +2,6 @@
 library(stringr)
 library(dplyr)
 
-#int<-read.csv("HummingbirdData/Interactions.csv",row.names=1)
-
-#is_complete<-int %>% select(site,folder,filename,date,time,waypoint,hummingbird)
-
-#get complete folders
-#complete_folder<-is_complete[complete.cases(is_complete),] %>% select(site,folder) %>% unique()
-
-#print incomplete folders
-#incomplete_folder<-is_complete[!complete.cases(is_complete),] %>% select(site,folder) %>% unique()
-#print(incomplete_folder)
-#get folder path
-
 basename<-c("/Users/Ben/Dropbox/HummingbirdProject/Data")
 outputpath<-c("/Users/Ben/Dropbox/HummingbirdProject/Completed_Frames")
 

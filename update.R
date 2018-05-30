@@ -3,7 +3,7 @@ library(knitr)
 
 setwd("/Users/Ben/Documents/EcuadorHummingbirdProject/")
 
-#clean data
+#clean datas
 knit('Aggregate.Rmd')
 
 #run python script to generate bounding boxes
@@ -14,5 +14,4 @@ source("CopyFrames.R")
 
 #upload to shiny
 source("UploadShiny.R")
-
 

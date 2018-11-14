@@ -18,7 +18,14 @@ library(chron)
 library(readxl)
 library(taxize)
 library(anytime)
+library(googlesheets)
 basename="/Users/Ben/Dropbox/HummingbirdProject/Data/"
+```
+
+Read google sheet of taxonomy
+
+```{r}
+gs_auth()
 ```
 
 #GPS Data
@@ -137,6 +144,7 @@ transect_xlsx<-lapply(transect_files,function(x){
     y$count_method<-as.character(y$count_method)
     y$flower_unit<-as.character(y$flower_unit)
     y$flower_count1<-as.character(y$flower_count1)
+    y$flower_count3<-as.character(y$flower_count3)
     y$date<-as.character(y$date)
 
   }
@@ -146,10 +154,12 @@ transect_xlsx<-lapply(transect_files,function(x){
     y$site<-str_match(x,"(\\w+)/transect")[2]
 
     #turn waypoints to character for the moment
+    y$height<-as.character(y$height)
     y$waypoint<-as.character(y$waypoint)
     y$total_flowers<-as.character(y$total_flowers)
     y$flower_unit<-as.character(y$flower_unit)
     y$flower_count1<-as.character(y$flower_count1)
+    y$flower_count3<-as.character(y$flower_count3)
 
   }
   
@@ -197,10 +207,21 @@ plants_keep<-tran_taxize$submitted_name[sapply(strsplit(tran_taxize$matched_name
 
 plants_missing<-tran_taxize$submitted_name[!sapply(strsplit(tran_taxize$matched_name2," "),length)==2]
 
+transect_data %>% mutate(missing=final_plant_name %in% plants_missing) %>% group_by(site) %>% summarize(n=sum(missing)/n()*100)
+
 #Create missing plant index.
 plant_tax_needed<-transect_data %>% filter(final_plant_name %in% plants_missing) %>% distinct(site,final_plant_name) 
 write.csv(plant_tax_needed,"missing_taxonomy.csv")
 
+#write for each site
+sites<-unique(missing_transect_gps$site)
+for(x in 1:length(sites)){
+  
+  transect_data %>% filter(final_plant_name %in% plants_missing) %>% distinct(site,final_plant_name) %>% filter(site==sites[x]) %>% write.csv(.,paste("/Users/Ben/Dropbox/HummingbirdProject/Data/",sites[x],"Transects_Missing_Taxonomy.csv",sep="/"))
+}
+```
+
+```{r}
 transect_data<-transect_data %>% filter(final_plant_name %in% plants_keep) %>% 
 select(date,Month,Year,site,final_plant_name,total_flowers,waypoint,height,hummingbird,comment) %>% droplevels()
 
@@ -242,6 +263,16 @@ paste(missing<-transect_gps %>% filter(is.na(lon)) %>% nrow(.), "transect points
 missing_transect_gps<-transect_gps %>% filter(is.na(lon)) %>% group_by(site,date) %>% summarize(n=n()) %>% arrange(desc(n))
 
 write.csv(missing_transect_gps,"missing_transect_dates.csv")
+```
+
+Generate error scripts
+
+```{r}
+
+for(x in 1:length(sites)){
+  
+  missing_transect_gps %>% filter(site==sites[x]) %>% write.csv(.,paste("/Users/Ben/Dropbox/HummingbirdProject/Data/",sites[x],"Transects_Missing_GPS.csv",sep="/"))
+}
 ```
 
 ## Divide into plant and hummingbird transects
@@ -531,5 +562,19 @@ write.csv(int_gps,"/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProject
 
 #write to shiny server
 write.csv(int_gps,"HummingbirdData/Interactions.csv")
+```
+
+Generate error scripts for cameras
+
+```{r}
+sites<-unique(missing_transect_gps$site)
+
+for(x in 1:length(sites)){
+  
+  camera_missing %>% filter(site==sites[x]) %>% write.csv(.,paste("/Users/Ben/Dropbox/HummingbirdProject/Data/",sites[x],"Camera_Missing_Taxonomy.csv",sep="/"))
+  
+      camera_gps %>% filter(is.na(lon),site==sites[x]) %>% write.csv(.,paste("/Users/Ben/Dropbox/HummingbirdProject/Data/",sites[x],"Camera_Missing_GPS.csv",sep="/"))
+
+}
 ```
 

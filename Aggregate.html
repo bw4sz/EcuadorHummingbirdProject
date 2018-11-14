@@ -91,6 +91,9 @@ img {
 .tabbed-pane {
   padding-top: 12px;
 }
+.html-widget {
+  margin-bottom: 20px;
+}
 button.code-folding-btn:focus {
   outline: none;
 }
@@ -143,8 +146,10 @@ wayfiles&lt;-function(x){
     #remove some generic files
     return(k)
   }
-wpoints&lt;-lapply(allwaypoints,wayfiles)
-wpoints&lt;-wpoints[!sapply(wpoints,length)==1]
+wpoints&lt;-lapply(allwaypoints,wayfiles)</code></pre>
+<pre><code>## expected '&gt;'
+## [1] &quot;missing&quot;</code></pre>
+<pre class="r"><code>wpoints&lt;-wpoints[!sapply(wpoints,length)==1]
 
 wpoints&lt;-rbind_all(wpoints)
 
@@ -232,6 +237,7 @@ transect_xlsx&lt;-lapply(transect_files,function(x){
     y$count_method&lt;-as.character(y$count_method)
     y$flower_unit&lt;-as.character(y$flower_unit)
     y$flower_count1&lt;-as.character(y$flower_count1)
+    y$flower_count3&lt;-as.character(y$flower_count3)
     y$date&lt;-as.character(y$date)
 
   }
@@ -241,10 +247,12 @@ transect_xlsx&lt;-lapply(transect_files,function(x){
     y$site&lt;-str_match(x,&quot;(\\w+)/transect&quot;)[2]
 
     #turn waypoints to character for the moment
+    y$height&lt;-as.character(y$height)
     y$waypoint&lt;-as.character(y$waypoint)
     y$total_flowers&lt;-as.character(y$total_flowers)
     y$flower_unit&lt;-as.character(y$flower_unit)
     y$flower_count1&lt;-as.character(y$flower_count1)
+    y$flower_count3&lt;-as.character(y$flower_count3)
 
   }
   
@@ -260,13 +268,16 @@ transect_xlsx&lt;-lapply(transect_files,function(x){
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//MashpiLaguna/transect_MashpiLaguna.xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Puyucunapi/transect_Puyucunapi_disturbed.xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Rumisitana/transect_Rumisitana_disturbed.xlsx&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Sachatamia_disturbed/transect_Sachatamia_disturbed (Copia en conflicto de Esteban Guevara 2018-09-04).xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Sachatamia_disturbed/transect_Sachatamia_disturbed.xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Sachatamia/transect_Sachatamia.xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//SantaLuciaLower/transect_SantaLuciaLower.csv&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//SantaLuciaUpper/transect_SantaLuciaUpper.csv&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco_disturbed/transect_UPDC_disturbed (Copia en conflicto de Esteban Guevara 2018-09-04).xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco_disturbed/transect_UPDC_disturbed.xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco/transect_UnPocoDelChoco.xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Verdecocha/transect_Verdecocha.xlsx&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Yanacocha_disturbed/transect_Yanacocha_disturbed (Copia en conflicto de Esteban Guevara 2018-09-04).xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Yanacocha_disturbed/transect_Yanacocha_disturbed.xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Yanacocha/transect_Yanacocha.xlsx&quot;</code></pre>
 <pre class="r"><code>#remove empty files
@@ -307,10 +318,34 @@ plants_keep&lt;-tran_taxize$submitted_name[sapply(strsplit(tran_taxize$matched_n
 
 plants_missing&lt;-tran_taxize$submitted_name[!sapply(strsplit(tran_taxize$matched_name2,&quot; &quot;),length)==2]
 
-#Create missing plant index.
+transect_data %&gt;% mutate(missing=final_plant_name %in% plants_missing) %&gt;% group_by(site) %&gt;% summarize(n=sum(missing)/n()*100)</code></pre>
+<pre><code>## # A tibble: 19 x 2
+##    site                          n
+##    &lt;chr&gt;                     &lt;dbl&gt;
+##  1 Alaspungo                18.5  
+##  2 Alaspungo_disturbed       8.23 
+##  3 Amagusa                  21.6  
+##  4 Cambugan                 28.3  
+##  5 LasGralarias              9.99 
+##  6 Maquipucuna               3.65 
+##  7 MashpiCapuchin            7.92 
+##  8 MashpiLaguna             14.4  
+##  9 Puyucunapi                5.96 
+## 10 Rumisitana                4.82 
+## 11 Sachatamia                3.22 
+## 12 Sachatamia_disturbed     10.6  
+## 13 SantaLuciaLower           1.91 
+## 14 SantaLuciaUpper           1.40 
+## 15 UnPocoDelChoco            0.271
+## 16 UnPocoDelChoco_disturbed  0.229
+## 17 Verdecocha                1.56 
+## 18 Yanacocha                 0.306
+## 19 Yanacocha_disturbed       2.59</code></pre>
+<pre class="r"><code>#Create missing plant index.
 plant_tax_needed&lt;-transect_data %&gt;% filter(final_plant_name %in% plants_missing) %&gt;% distinct(site,final_plant_name) 
 write.csv(plant_tax_needed,&quot;missing_taxonomy.csv&quot;)
 
+#write for each site
 transect_data&lt;-transect_data %&gt;% filter(final_plant_name %in% plants_keep) %&gt;% 
 select(date,Month,Year,site,final_plant_name,total_flowers,waypoint,height,hummingbird,comment) %&gt;% droplevels()
 
@@ -346,10 +381,19 @@ for (x in levels(transect_data$hummingbird)){
 <pre class="r"><code>transect_gps&lt;-transect_data %&gt;% left_join(wpoints,by=c(&quot;site&quot;,&quot;Month&quot;,&quot;waypoint&quot;))
 
 paste(missing&lt;-transect_gps %&gt;% filter(is.na(lon)) %&gt;% nrow(.), &quot;transect points&quot;, &quot;out of&quot;, nrow(transect_gps), &quot;missing GPS data&quot;)</code></pre>
-<pre><code>## [1] &quot;1430 transect points out of 14795 missing GPS data&quot;</code></pre>
+<pre><code>## [1] &quot;5102 transect points out of 24006 missing GPS data&quot;</code></pre>
 <pre class="r"><code>missing_transect_gps&lt;-transect_gps %&gt;% filter(is.na(lon)) %&gt;% group_by(site,date) %&gt;% summarize(n=n()) %&gt;% arrange(desc(n))
 
 write.csv(missing_transect_gps,&quot;missing_transect_dates.csv&quot;)</code></pre>
+<p>Generate error scripts</p>
+<pre class="r"><code>sites&lt;-unique(missing_transect_gps$site)
+
+for(x in 1:length(sites)){
+  
+  transect_data %&gt;% filter(final_plant_name %in% plants_missing) %&gt;% distinct(site,final_plant_name) %&gt;% filter(site==sites[x]) %&gt;% write.csv(.,paste(&quot;/Users/Ben/Dropbox/HummingbirdProject/Data/&quot;,sites[x],&quot;Transects_Missing_Taxonomy.csv&quot;,sep=&quot;/&quot;))
+
+  missing_transect_gps %&gt;% filter(site==sites[x]) %&gt;% write.csv(.,paste(&quot;/Users/Ben/Dropbox/HummingbirdProject/Data/&quot;,sites[x],&quot;Transects_Missing_GPS.csv&quot;,sep=&quot;/&quot;))
+}</code></pre>
 </div>
 <div id="divide-into-plant-and-hummingbird-transects" class="section level2">
 <h2>Divide into plant and hummingbird transects</h2>
@@ -426,6 +470,7 @@ camera_xlsx&lt;-lapply(camera_files,function(x){
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Sachatamia/cameras_Sachatamia.xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//SantaLuciaLower/cameras_SantaLuciaLower.csv&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//SantaLuciaUpper/cameras_SantaLuciaUpper.csv&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco_disturbed/cameras_UPDC_disturbed (Copia en conflicto de Esteban Guevara 2018-09-04).xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco_disturbed/cameras_UPDC_disturbed.xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco/cameras_UnPocoDelChoco.xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Verdecocha/cameras_Verdecocha.xlsx&quot;
@@ -475,26 +520,30 @@ camera_dat&lt;-droplevels(camera_dat)</code></pre>
 <h2>Combine with gps data</h2>
 <pre class="r"><code>camera_gps&lt;-camera_dat %&gt;% select(-Month) %&gt;% left_join(wpoints,by=c(&quot;site&quot;,&quot;waypoint&quot;)) 
 paste(camera_gps %&gt;% filter(is.na(lon)) %&gt;% nrow(.), &quot;camera points missing GPS data from&quot;,  nrow(camera_gps))</code></pre>
-<pre><code>## [1] &quot;224 camera points missing GPS data from 1124&quot;</code></pre>
+<pre><code>## [1] &quot;527 camera points missing GPS data from 2062&quot;</code></pre>
 <pre class="r"><code>camera_gps %&gt;% filter(is.na(lon)) %&gt;% group_by(site) %&gt;% summarize(n=n()) %&gt;% arrange(desc(n))</code></pre>
-<pre><code>## # A tibble: 15 x 2
+<pre><code>## # A tibble: 19 x 2
 ##    site                         n
 ##    &lt;chr&gt;                    &lt;int&gt;
-##  1 Sachatamia                  36
-##  2 MashpiCapuchin              35
-##  3 LasGralarias                28
-##  4 MashpiLaguna                24
-##  5 Yanacocha                   21
-##  6 UnPocoDelChoco              15
-##  7 Verdecocha                  13
-##  8 Alaspungo_disturbed         12
-##  9 Maquipucuna                  8
-## 10 SantaLuciaUpper              8
-## 11 Yanacocha_disturbed          6
-## 12 Cambugan                     5
-## 13 Sachatamia_disturbed         5
-## 14 UnPocoDelChoco_disturbed     5
-## 15 SantaLuciaLower              3</code></pre>
+##  1 LasGralarias                55
+##  2 MashpiLaguna                47
+##  3 Alaspungo_disturbed         41
+##  4 MashpiCapuchin              39
+##  5 Amagusa                     37
+##  6 Rumisitana                  36
+##  7 Puyucunapi                  35
+##  8 Yanacocha_disturbed         32
+##  9 Verdecocha                  30
+## 10 Yanacocha                   30
+## 11 Alaspungo                   29
+## 12 Sachatamia_disturbed        29
+## 13 Sachatamia                  23
+## 14 UnPocoDelChoco              21
+## 15 Maquipucuna                 14
+## 16 UnPocoDelChoco_disturbed    11
+## 17 SantaLuciaUpper              8
+## 18 Cambugan                     5
+## 19 SantaLuciaLower              5</code></pre>
 </div>
 <div id="write-to-file-1" class="section level2">
 <h2>Write to file</h2>
@@ -536,40 +585,44 @@ int_data&lt;-lapply(int_files,function(x){
   
 })</code></pre>
 <pre><code>## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Alaspungo_disturbed/observations_Alaspungo_disturbed.xlsx&quot;
-## [1] 182  12
+## [1] 485  12
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Alaspungo/observations_Alaspungo.xlsx&quot;
-## [1] 533  12
+## [1] 1105   12
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Amagusa/observations_Amagusa_disturbed (Esteban Guevara's conflicted copy).xlsx&quot;
+## [1] 281  12
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Amagusa/observations_Amagusa_disturbed.xlsx&quot;
-## [1]  0 11
+## [1] 281  12
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Cambugan/observations_cambugan.xlsx&quot;
 ## [1]  0 11
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//LasGralarias/observations_lasgralarias.xlsx&quot;
-## [1] 1002   12
+## [1] 1508   12
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Maquipucuna/observations_Maquipucuna.csv&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//MashpiCapuchin/observations_MashpiCapuchin.xlsx&quot;
-## [1] 1347   12
+## [1] 1763   12
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//MashpiLaguna/observations_MashpiLaguna.xlsx&quot;
-## [1] 604  12
+## [1] 1021   12
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Puyucunapi/observations_Puyucunapi_disturbed.xlsx&quot;
-## [1] 434  12
+## [1] 558  12
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Rumisitana/observations_Rumisitana_disturbed.xlsx&quot;
-## [1] 112  12
+## [1] 138  12
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Sachatamia_disturbed/observations_Sachatamia_disturbed.xlsx&quot;
-## [1] 571  12
+## [1] 605  12
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Sachatamia/observations_Sachatamia.xlsx&quot;
-## [1] 1322   12
+## [1] 1788   12
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//SantaLuciaLower/observations_SantaLuciaLower.csv&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//SantaLuciaUpper/observations_SantaLuciaUpper.csv&quot;
+## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco_disturbed/observations_UPDC_disturbed (Copia en conflicto de Esteban Guevara 2018-09-04).xlsx&quot;
+## [1] 580  17
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco_disturbed/observations_UPDC_disturbed.xlsx&quot;
-## [1] 496  12
+## [1] 616  26
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco/observations_UnPocoDelChoco.xlsx&quot;
-## [1] 1241   13
+## [1] 1385   13
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Verdecocha/observations_Verdecocha.xlsx&quot;
-## [1] 1184   12
+## [1] 1891   16
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Yanacocha_disturbed/observations_Yanacocha_disturbed.xlsx&quot;
-## [1] 55 12
+## [1] 367  12
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Yanacocha/observations_Yanacocha.xlsx&quot;
-## [1] 1137   13</code></pre>
+## [1] 2156   13</code></pre>
 <pre class="r"><code>int_data&lt;-bind_rows(int_data)</code></pre>
 <div id="cleaning-1" class="section level2">
 <h2>Cleaning</h2>
@@ -624,19 +677,25 @@ isclass&lt;-tax_name(query = levels(int_data$hummingbird), get = &quot;family&qu
 ## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
+## Retrieving data for taxon 'Amazilia amabilis'</code></pre>
+<pre><code>## No ENTREZ API key provided
+## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
+## No ENTREZ API key provided
+## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
+<pre><code>## 
 ## Retrieving data for taxon 'Amazilia franciae'</code></pre>
 <pre><code>## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
 ## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
-## Retrieving data for taxon 'Amazilia rosenbergi'</code></pre>
+## Retrieving data for taxon 'Amazilia tzacatl'</code></pre>
 <pre><code>## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
 ## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
-## Retrieving data for taxon 'Amazilia tzacatl'</code></pre>
+## Retrieving data for taxon 'Androdon aequatorialis'</code></pre>
 <pre><code>## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
 ## No ENTREZ API key provided
@@ -672,6 +731,12 @@ isclass&lt;-tax_name(query = levels(int_data$hummingbird), get = &quot;family&qu
 ## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
+## Retrieving data for taxon 'Chalcostigma herrani'</code></pre>
+<pre><code>## No ENTREZ API key provided
+## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
+## No ENTREZ API key provided
+## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
+<pre><code>## 
 ## Retrieving data for taxon 'Chlorostilbon melanorhynchus'</code></pre>
 <pre><code>## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
@@ -696,6 +761,12 @@ isclass&lt;-tax_name(query = levels(int_data$hummingbird), get = &quot;family&qu
 ## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
+## Retrieving data for taxon 'Colibri coruscans'</code></pre>
+<pre><code>## No ENTREZ API key provided
+## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
+## No ENTREZ API key provided
+## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
+<pre><code>## 
 ## Retrieving data for taxon 'Colibri delphinae'</code></pre>
 <pre><code>## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
@@ -714,13 +785,13 @@ isclass&lt;-tax_name(query = levels(int_data$hummingbird), get = &quot;family&qu
 ## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
-## Retrieving data for taxon 'Doryfera ludovicae'</code></pre>
+## Retrieving data for taxon 'Diglossa lafresnayii'</code></pre>
 <pre><code>## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
 ## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
-## Retrieving data for taxon 'Doryfera ludoviciae'</code></pre>
+## Retrieving data for taxon 'Doryfera ludovicae'</code></pre>
 <pre><code>## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
 ## No ENTREZ API key provided
@@ -786,6 +857,12 @@ isclass&lt;-tax_name(query = levels(int_data$hummingbird), get = &quot;family&qu
 ## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
+## Retrieving data for taxon 'Heliodoxa leadbeateri'</code></pre>
+<pre><code>## No ENTREZ API key provided
+## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
+## No ENTREZ API key provided
+## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
+<pre><code>## 
 ## Retrieving data for taxon 'Heliodoxa rubinoides'</code></pre>
 <pre><code>## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
@@ -793,6 +870,12 @@ isclass&lt;-tax_name(query = levels(int_data$hummingbird), get = &quot;family&qu
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Heliomaster longirostris'</code></pre>
+<pre><code>## No ENTREZ API key provided
+## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
+## No ENTREZ API key provided
+## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Heliothryx barroti'</code></pre>
 <pre><code>## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
 ## No ENTREZ API key provided
@@ -840,6 +923,12 @@ isclass&lt;-tax_name(query = levels(int_data$hummingbird), get = &quot;family&qu
 ## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
+## Retrieving data for taxon 'Phaethornis baroni'</code></pre>
+<pre><code>## Not found. Consider checking the spelling or alternate classification</code></pre>
+<pre><code>## No UID found for species 'Phaethornis baroni'!</code></pre>
+<pre><code>## No ENTREZ API key provided
+## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
+<pre><code>## 
 ## Retrieving data for taxon 'Phaethornis griseogularis'</code></pre>
 <pre><code>## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
@@ -870,12 +959,6 @@ isclass&lt;-tax_name(query = levels(int_data$hummingbird), get = &quot;family&qu
 ## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
-## Retrieving data for taxon 'Puma concolor'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
-<pre><code>## 
 ## Retrieving data for taxon 'Schistes geoffroyi'</code></pre>
 <pre><code>## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
@@ -883,6 +966,18 @@ isclass&lt;-tax_name(query = levels(int_data$hummingbird), get = &quot;family&qu
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Thalurania fannyi'</code></pre>
+<pre><code>## No ENTREZ API key provided
+## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
+## No ENTREZ API key provided
+## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Threnetes ruckeri'</code></pre>
+<pre><code>## No ENTREZ API key provided
+## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
+## No ENTREZ API key provided
+## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Trogon collaris'</code></pre>
 <pre><code>## No ENTREZ API key provided
 ## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
 ## No ENTREZ API key provided
@@ -929,20 +1024,20 @@ int_gps&lt;-int_gps[!duplicated(int_gps),]
 int_gps&lt;-int_gps %&gt;% select(folder,filename,date,time,waypoint,lon,lat,ele,hummingbird,revised_hummingbird,final_plant_name,sex,feeding_activity,piercing,comment,site)
 
 int_gps %&gt;% group_by(waypoint) %&gt;% summarize(n=n()) %&gt;% arrange(desc(n))</code></pre>
-<pre><code>## # A tibble: 1,075 x 2
+<pre><code>## # A tibble: 1,620 x 2
 ##    waypoint      n
 ##    &lt;chr&gt;     &lt;int&gt;
 ##  1 MQPC2305    171
-##  2 UPDC0223    116
-##  3 &lt;NA&gt;        107
-##  4 PUYUD5303   105
-##  5 ALAS8503    101
-##  6 GRAL3011    100
-##  7 SACH8302     87
-##  8 SACH8002     85
-##  9 MSPC1304     82
-## 10 STLL1918     82
-## # ... with 1,065 more rows</code></pre>
+##  2 AMAGD6202   142
+##  3 UPDC7003D   138
+##  4 YANA3723    124
+##  5 UPDC0223    116
+##  6 MSPC1322    109
+##  7 &lt;NA&gt;        108
+##  8 PUYUD5303   105
+##  9 ALAS8503    101
+## 10 GRAL3011    100
+## # ... with 1,610 more rows</code></pre>
 <pre class="r"><code>#label events
 int_gps$ID=1:nrow(int_gps)
 
@@ -970,30 +1065,31 @@ int_gps&lt;-int_gps %&gt;% filter(!is.na(hummingbird))
 
 #missing gps data
 paste(int_gps %&gt;% filter(is.na(lon)) %&gt;% nrow(.), &quot;records missing gps data&quot;, &quot;from&quot;,nrow(int_gps))</code></pre>
-<pre><code>## [1] &quot;4964 records missing gps data from 12477&quot;</code></pre>
+<pre><code>## [1] &quot;6621 records missing gps data from 18637&quot;</code></pre>
 <pre class="r"><code>print(&quot;Missing GPS records by site&quot;)</code></pre>
 <pre><code>## [1] &quot;Missing GPS records by site&quot;</code></pre>
 <pre class="r"><code>int_gps %&gt;% filter(is.na(lon)) %&gt;% group_by(site) %&gt;% summarize(n=n()) %&gt;% arrange(desc(n))</code></pre>
-<pre><code>## # A tibble: 17 x 2
+<pre><code>## # A tibble: 18 x 2
 ##    site                         n
 ##    &lt;chr&gt;                    &lt;int&gt;
-##  1 Sachatamia                 639
-##  2 UnPocoDelChoco             530
-##  3 MashpiCapuchin             508
-##  4 Puyucunapi                 426
-##  5 LasGralarias               366
-##  6 Yanacocha                  364
-##  7 UnPocoDelChoco_disturbed   348
-##  8 Alaspungo                  330
-##  9 Sachatamia_disturbed       289
-## 10 Verdecocha                 289
-## 11 MashpiLaguna               197
-## 12 Maquipucuna                175
-## 13 SantaLuciaUpper            152
-## 14 Alaspungo_disturbed        113
-## 15 Rumisitana                 105
-## 16 SantaLuciaLower             99
-## 17 Yanacocha_disturbed         34</code></pre>
+##  1 Yanacocha                  597
+##  2 UnPocoDelChoco             576
+##  3 Alaspungo                  564
+##  4 UnPocoDelChoco_disturbed   535
+##  5 Amagusa                    528
+##  6 LasGralarias               479
+##  7 Puyucunapi                 433
+##  8 MashpiLaguna               404
+##  9 Alaspungo_disturbed        377
+## 10 Verdecocha                 361
+## 11 MashpiCapuchin             359
+## 12 Sachatamia_disturbed       303
+## 13 Sachatamia                 281
+## 14 Yanacocha_disturbed        246
+## 15 Maquipucuna                232
+## 16 SantaLuciaUpper            151
+## 17 SantaLuciaLower            102
+## 18 Rumisitana                  93</code></pre>
 </div>
 <div id="write-to-file-2" class="section level2">
 <h2>Write to file</h2>
@@ -1002,6 +1098,16 @@ write.csv(int_gps,&quot;/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdPr
 
 #write to shiny server
 write.csv(int_gps,&quot;HummingbirdData/Interactions.csv&quot;)</code></pre>
+<p>Generate error scripts for cameras</p>
+<pre class="r"><code>sites&lt;-unique(missing_transect_gps$site)
+
+for(x in 1:length(sites)){
+  
+  camera_missing %&gt;% filter(site==sites[x]) %&gt;% write.csv(.,paste(&quot;/Users/Ben/Dropbox/HummingbirdProject/Data/&quot;,sites[x],&quot;Camera_Missing_Taxonomy.csv&quot;,sep=&quot;/&quot;))
+  
+      camera_gps %&gt;% filter(is.na(lon),site==sites[x]) %&gt;% write.csv(.,paste(&quot;/Users/Ben/Dropbox/HummingbirdProject/Data/&quot;,sites[x],&quot;Camera_Missing_GPS.csv&quot;,sep=&quot;/&quot;))
+
+}</code></pre>
 </div>
 </div>
 

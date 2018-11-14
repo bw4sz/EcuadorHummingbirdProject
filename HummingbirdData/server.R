@@ -6,7 +6,7 @@ library(ggplot2)
 library(leaflet)
 
 server <- function(input, output, session) {
-  Sys.setlocale('LC_ALL','C') 
+  #Sys.setlocale('LC_ALL','C') 
   
   #Site Map
   d<-read.csv("newSites.csv",row.names=1)
@@ -23,10 +23,13 @@ server <- function(input, output, session) {
   
   #How many transects by site
   mostc<-function(x){names(sort(table(x),decreasing=T))[1]}
-  tran_table<-transects %>% group_by(site) %>% summarize(Transects_Performed=length(unique(date)),Plant_Species=length(unique(final_plant_name)),Total_Flowers=sum(total_flowers),Top_Plant=mostc(final_plant_name))
+  tran_table<-transects %>% group_by(site) %>% 
+    summarize(Transects_Performed=length(unique(date)),Plant_Species=length(unique(final_plant_name)),Total_Flowers=sum(total_flowers),Top_Plant=mostc(final_plant_name))
   
   #Plot of flower count over time
-  output$tran_table<-renderTable(tran_table)
+  output$tran_table<-function(){
+    tran_table %>% kable("html") %>% kable_styling(bootstrap_options = c("striped","condensced"), full_width = F)
+  }
   
   #Phenology plots
   #month factor
@@ -57,14 +60,18 @@ server <- function(input, output, session) {
   
   ## summary table
   cam_table<-camera_dat %>% group_by(site) %>% summarize(n=n(),plant_species=length(unique(final_plant_name)))
-  output$cam_table<-renderTable(cam_table)
+  output$cam_table<-function(){
+    cam_table %>% kable("html") %>% kable_styling(bootstrap_options = c("striped","condensced"), full_width = T)
+  }
   
   #Interaction Data
   int_data<-read.csv("Interactions.csv",row.names=1)
   
   #Summary Table
   int_table<-int_data %>% group_by(site) %>% summarize(Observations=n(),Hummingbird_sp=length(unique(hummingbird)),Plant_sp=length(unique(final_plant_name)))
-  output$int_table<-renderTable(int_table)
+  output$int_table<-function(){
+    int_table %>% kable("html") %>% kable_styling(bootstrap_options = c("striped","condensced"), full_width = F)
+  }
   
   #interaction table
   net_table<-int_data %>% group_by(final_plant_name,hummingbird) %>% filter(!is.na(final_plant_name)) %>% summarize(n=n()) %>% arrange()
@@ -89,7 +96,7 @@ server <- function(input, output, session) {
   #bird elevation range                 
   hum_ord<-hum  %>% droplevels() %>% group_by(hummingbird) %>% summarize(e=mean(as.numeric(ele))) %>% arrange(e) %>% .$hummingbird
   hum$hummingbird <- factor(hum$hummingbird,levels=hum_ord)
-  hum_elev<-ggplot(hum,aes(x=hummingbird,y=as.numeric(ele))) + geom_boxplot(aes(fill=site)) + coord_flip() + theme_bw() + labs(x="Elevation(m)",y="Species",fill="Site") 
+  hum_elev<-ggplot(hum,aes(x=hummingbird,y=as.numeric(ele))) + geom_boxplot(aes(fill=site)) + coord_flip() + theme_bw() + labs(y="Elevation(m)",x="Species",fill="Site") 
   output$hum_elev<-renderPlot(hum_elev)
   
   ##plant map  

@@ -7,6 +7,10 @@ editor_options:
   chunk_output_type: console
 ---
 
+Aim: To create a generalized cleaning structure for the Ecuador data.
+
+The date structures remain a challenge.
+
 ```{r setup, include=FALSE}
 library(maptools)
 library(plotKML)
@@ -14,6 +18,7 @@ library(ggplot2)
 library(taxize)
 library(dplyr)
 library(stringr)
+library(stringi)
 library(chron)
 library(readxl)
 library(taxize)
@@ -22,13 +27,36 @@ library(googlesheets)
 basename="/Users/Ben/Dropbox/HummingbirdProject/Data/"
 ```
 
-Read google sheet of taxonomy
+# Read taxonomy
 
-```{r}
-gs_auth()
+From Fransisco's dropbox. Live updating to reflect new identifications.
+
+```{r,eval=T}
+taxsheet<-read_excel("/Users/ben/Dropbox/Lista Planta final/LISTA PLANTA_FINAL_TODOS_150119.xls") %>% select(Site,"field_name (AyC)","ID_final") %>% rename(plant_field_name=`field_name (AyC)`,final_plant_name=`ID_final`)
+
+abb<-data.frame(Site=c("RUMI","MSPL","VECO","MSPC","ALAS","GRAL","UPDC","MAQUI","UPDCD","YANA","YANAD","ALASD","STLU","PUYU","SACH","STLL","SACHD","AMAG","SANTA","AMAGD","BELLA","CAMBA"),FullSite=c("Rumisitana","MashpiLaguna","Verdecocha","MashpiCapuchin","Alaspungo","LasGralarias","UnPocoDelChoco","Maquipucuna","UnPocoDelChoco_disturbed","Yanacocha","Yanacocha_disturbed","Alaspungo_disturbed","SantaLuciaUpper","Puyucunapi","Sachatamia","SantaLuciaLower","Sachatamia_disturbed","Amagusa","Santa Lucia","Amagusa_disturbed","Bellavista","Cambugan"))
+taxsheet<-taxsheet %>% left_join(abb)
+
+#Do some cap standards, only the first word is capitalized
+taxsheet$plant_field_name<-tolower(taxsheet$plant_field_name)
+taxsheet$plant_field_name<-stri_trans_totitle(taxsheet$plant_field_name,opts_brkiter = stri_opts_brkiter(type = "sentence"))
+
+taxsheet$final_plant_name<-tolower(taxsheet$final_plant_name)
+taxsheet$final_plant_name<-stri_trans_totitle(taxsheet$final_plant_name,opts_brkiter = stri_opts_brkiter(type = "sentence"))
+
+#remove all periods
+taxsheet$plant_field_name<-str_replace(taxsheet$plant_field_name,"\\.","")
+taxsheet$final_plant_name<-str_replace(taxsheet$final_plant_name,"\\.","")
+
+#no space between sp and number
+taxsheet$plant_field_name<-str_replace(taxsheet$plant_field_name,"sp (\\d)","sp\\1")
+taxsheet$final_plant_name<-str_replace(taxsheet$final_plant_name,"sp (\\d)","sp\\1")
+
 ```
 
-#GPS Data
+# GPS Data
+
+Read gpx files uploaded by field researchers.
 
 ```{r}
 allwaypoints<-list.files(basename,recursive=TRUE,full.name=TRUE,pattern=".gpx")
@@ -114,7 +142,7 @@ write.csv(wpoints,"/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProject
 write.csv(wpoints,"HummingbirdData/GPS.csv")
 ```
 
-#Transect Data
+# Transect Data
 
 ```{r}
 transect_files<-list.files(basename,recursive=TRUE,pattern="transect_",full.names=T)
@@ -160,6 +188,7 @@ transect_xlsx<-lapply(transect_files,function(x){
     y$flower_unit<-as.character(y$flower_unit)
     y$flower_count1<-as.character(y$flower_count1)
     y$flower_count3<-as.character(y$flower_count3)
+    y$count_method<-as.character(y$count_method)
 
   }
   
@@ -174,87 +203,118 @@ transect_data<-bind_rows(transect_xlsx)
 #turn total flowers back to numeric
 transect_data$total_flowers<-as.numeric(transect_data$total_flowers)
 
+#replace missing cells with NA, todo check holger's ugly file format
+transect_data$revised_plant_name[transect_data$revised_plant_name==""]<-NA
+
 #If revised plant name exists, replace
-transect_data$final_plant_name<-transect_data$plant_field_name
+transect_data$taxize_plant_name<-transect_data$plant_field_name
 for(x in 1:nrow(transect_data)){
   if(!is.na(transect_data$revised_plant_name[x])){
-    transect_data$final_plant_name[x]<-transect_data$revised_plant_name[x]
+    transect_data$taxize_plant_name[x]<-transect_data$revised_plant_name[x]
   }
 }
+
+#Do some cap standards, only the first word is capitalized
+transect_data$taxize_plant_name<-tolower(transect_data$taxize_plant_name)
+transect_data$taxize_plant_name<-stri_trans_totitle(transect_data$taxize_plant_name,opts_brkiter = stri_opts_brkiter(type = "sentence"))
+
+#remove all periods
+transect_data$taxize_plant_name<-str_replace(transect_data$taxize_plant_name,"\\.","")
+
+#no space between sp and number
+transect_data$taxize_plant_name<-str_replace(transect_data$taxize_plant_name,"sp (\\d)","sp\\1")
 ```
 
-## Cleaning
+## Taxonomy Cleaning
+
+This comes in three steps.
+
+* Basic name standardization. First word is capitalized, second is not. Drop special characters and carriage returns.
+
+* Spelling mistakes are checked by looking at the Tropicos database using taxize. Recognized names are replaced, the rest are left in place.
+
+* Check against fransisco's identification sheet. 
 
 ```{r}
 #Month and year column
 transect_data$Month<-months(strptime(transect_data$date,"%d/%m/%Y"))
 transect_data$Year<-years(strptime(transect_data$date,"%d/%m/%Y"))
 
-#Look up names
+#Look up taxize names against tropicos
 sources <- gnr_datasources()
 tropicos<-sources$id[sources$title == 'Tropicos - Missouri Botanical Garden']
 
-transect_data$final_plant_name<-factor(transect_data$final_plant_name)
-tran_levels<-levels(transect_data$final_plant_name)
+#Create plant taxonomy factors by site (required for fransisco's data)
+tran_levels<-transect_data %>% distinct(taxize_plant_name) %>% filter(!is.na(taxize_plant_name))
 
-#check for empty cells
-tran_levels<-tran_levels[!tran_levels %in% c(""," ")]
+#send to tropicos
+tran_taxize<-gnr_resolve(tran_levels$taxize_plant_name,best_match_only=T,canonical = TRUE,data_source_ids=tropicos) 
 
-tran_taxize<-gnr_resolve(tran_levels,best_match_only=T,canonical = TRUE,data_source_ids=tropicos)
+#only keep species with matched double names - the rest are unknown to tropicos
+plants_keep<-tran_taxize %>% filter(matched_name2 %in% tran_taxize$matched_name2[str_count(tran_taxize$matched_name2,"\\w+")==2]) %>% .$user_supplied_name
 
-#only keep species with matched double names
-plants_keep<-tran_taxize$submitted_name[sapply(strsplit(tran_taxize$matched_name2," "),length)==2]
-
-plants_missing<-tran_taxize$submitted_name[!sapply(strsplit(tran_taxize$matched_name2," "),length)==2]
-
-transect_data %>% mutate(missing=final_plant_name %in% plants_missing) %>% group_by(site) %>% summarize(n=sum(missing)/n()*100)
-
-#Create missing plant index.
-plant_tax_needed<-transect_data %>% filter(final_plant_name %in% plants_missing) %>% distinct(site,final_plant_name) 
-write.csv(plant_tax_needed,"missing_taxonomy.csv")
-
-#write for each site
-sites<-unique(missing_transect_gps$site)
-for(x in 1:length(sites)){
-  
-  transect_data %>% filter(final_plant_name %in% plants_missing) %>% distinct(site,final_plant_name) %>% filter(site==sites[x]) %>% write.csv(.,paste("/Users/Ben/Dropbox/HummingbirdProject/Data/",sites[x],"Transects_Missing_Taxonomy.csv",sep="/"))
+#replace with taxized names, fixes spelling errors
+for(plant_name in plants_keep){
+  transect_data[transect_data$taxize_plant_name %in% plant_name,"taxize_plant_name"]<-tran_taxize[tran_taxize$user_supplied_name == plant_name,"matched_name2"]
 }
 ```
 
 ```{r}
-transect_data<-transect_data %>% filter(final_plant_name %in% plants_keep) %>% 
-select(date,Month,Year,site,final_plant_name,total_flowers,waypoint,height,hummingbird,comment) %>% droplevels()
-
-#fix mistakes
-
-#for formatted lavels
-for (x in levels(transect_data$final_plant_name)){
-  levels(transect_data$final_plant_name)[levels(transect_data$final_plant_name) %in% x]<-tran_taxize %>% filter(submitted_name %in% x) %>% .$matched_name2
+#matched with fransiscos names based on site. Drop unknown for now. Not convinced this is complete. Cannot join, need to proceed slowly.
+transect_data$final_plant_name<-transect_data$taxize_plant_name
+for(i in 1:nrow(taxsheet)){
+  transect_data[transect_data$site %in% taxsheet$site[i] & transect_data$taxize_plant_name %in% taxsheet$taxize_plant_name[i],"final_plant_name"]<-taxsheet$final_plant_name[i]
 }
 
-#droplevels
-transect_data<-droplevels(transect_data)
-
-#clean the  birds
-##need to standardize plant species to read from revised plant names
-transect_data[transect_data$hummingbird %in% "","hummingbird"]<-NA
-transect_data$hummingbird<-factor(transect_data$hummingbird)
-
-hum_levels<-levels(transect_data$hummingbird)
-hum_levels<-hum_levels[!hum_levels==""]
-
-hum_taxize<-gnr_resolve(hum_levels,best_match_only=T,canonical = TRUE)
-
-#fix formatted levels
-transect_data<-transect_data %>% filter(hummingbird %in% c(hum_taxize$user_supplied_name,NA)) %>% droplevels()
-
-for (x in levels(transect_data$hummingbird)){
-      levels(transect_data$hummingbird)[levels(transect_data$hummingbird) %in% x]<-hum_taxize %>% filter(user_supplied_name %in% x) %>% .$matched_name2
-}
-
+#Missing taxonomy defined as neither in the tropicos or fransisco's taxonomy database
+final_levels<-unique(transect_data$final_plant_name)
+not_in_tropicos<-final_levels[!final_levels %in% tran_taxize$matched_name2]
+plants_missing<-not_in_tropicos[!not_in_tropicos %in% taxsheet$final_plant_name]
 ```
 
-## Combine with gps data
+What percentage of transect names remain missing?
+
+```{r}
+transect_data %>% filter(!is.na(final_plant_name),!final_plant_name %in% c(" ","")) %>% mutate(missing=final_plant_name %in% plants_missing) %>% group_by(site) %>% summarize(n=sum(missing)/n()*100)
+```
+
+```{r}
+#Create missing plant index.
+plant_tax_needed<-transect_data %>% filter(final_plant_name %in% plants_missing,!is.na(final_plant_name),!final_plant_name %in% c(" ","")) %>% distinct(site,final_plant_name)
+write.csv(plant_tax_needed,"missing_taxonomy.csv")
+
+#write for each site
+sites<-unique(transect_data$site)
+for(x in 1:length(sites)){
+ plant_tax_needed %>% filter(site==sites[x]) %>% write.csv(.,paste("/Users/Ben/Dropbox/HummingbirdProject/Data/",sites[x],"Transects_Missing_Taxonomy.csv",sep="/"))
+}
+```
+
+```{r}
+transect_data<-transect_data %>% filter(!final_plant_name %in% plants_missing) %>% 
+select(date,Month,Year,site,final_plant_name,total_flowers,waypoint,height,hummingbird,comment) %>% droplevels()
+```
+
+# Clean hummingbird names
+
+```{r}
+#get species list
+hum_levels<-levels(transect_data$hummingbird)
+
+#lookup taxize
+hum_taxize<-gnr_resolve(hum_levels,best_match_only=T,canonical=TRUE)
+
+#only keep species with matched double names
+hum_keep<-hum_taxize$submitted_name[sapply(strsplit(hum_taxize$matched_name2," "),length)==2]
+hum_missing<-hum_taxize$submitted_name[!sapply(strsplit(hum_taxize$matched_name2," "),length)==2]
+
+#for formatted lavels
+for (x in levels(transect_data$hummingbird)){
+  levels(transect_data$hummingbird)[levels(transect_data$hummingbird) %in% x]<-hum_taxize %>% filter(submitted_name %in% x) %>% .$matched_name2  
+}
+```
+
+## Combine transect with gps data
 
 ```{r}
 transect_gps<-transect_data %>% left_join(wpoints,by=c("site","Month","waypoint"))
@@ -268,9 +328,7 @@ write.csv(missing_transect_gps,"missing_transect_dates.csv")
 Generate error scripts
 
 ```{r}
-
 for(x in 1:length(sites)){
-  
   missing_transect_gps %>% filter(site==sites[x]) %>% write.csv(.,paste("/Users/Ben/Dropbox/HummingbirdProject/Data/",sites[x],"Transects_Missing_GPS.csv",sep="/"))
 }
 ```
@@ -279,6 +337,12 @@ for(x in 1:length(sites)){
 
 ```{r}
 hummingbird_transects<-transect_gps %>% filter(!hummingbird=="")
+
+#only hummingbirds
+Sys.setenv(ENTREZ_KEY="f00b6e4c6b153028dfbe9389cd18f0a46b08")
+isclass<-tax_name(query = levels(hummingbird_transects$hummingbird), get = "family", db = "ncbi")
+troch_keep<-isclass %>% filter(family %in% c("Trochilidae","Thraupidae")) %>% .$query
+hummingbird_transects<-hummingbird_transects %>% filter(hummingbird %in% troch_keep) %>% droplevels()
 
 #What's up with cambugan, alot of no total flower counts?
 plant_transects<-transect_gps %>% filter(!final_plant_name=="") %>% filter(!is.na(total_flowers))
@@ -300,7 +364,7 @@ write.csv(plant_transects,"/Users/Ben/Dropbox/HummingbirdProject/Data/Hummingbir
 write.csv(plant_transects,"HummingbirdData/PlantTransects.csv")
 ```
 
-#Camera Data
+# Camera Data
 
 ```{r}
 camera_files<-list.files(basename,recursive=TRUE,pattern="cameras",full.names = T)
@@ -354,45 +418,86 @@ camera_dat$Year<-years(strptime(camera_dat$start_date,"%d/%m/%Y"))
 ## Taxonomy Cleaning
 
 ```{r}
+#replace missing cells with NA, todo check holger's ugly file format
+camera_dat$revised_plant_name[camera_dat$revised_plant_name==""]<-NA
 
 #If revised plant name exists, replace
-camera_dat$final_plant_name<-camera_dat$plant_field_name
+camera_dat$taxize_plant_name<-camera_dat$plant_field_name
 for(x in 1:nrow(camera_dat)){
   if(!is.na(camera_dat$revised_plant_name[x])){
-    camera_dat$final_plant_name[x]<-camera_dat$revised_plant_name[x]
+    camera_dat$taxize_plant_name[x]<-camera_dat$revised_plant_name[x]
   }
 }
 
-##need to standardize plant species to read from revised plant names
-camera_dat$final_plant_name<-factor(camera_dat$final_plant_name)
+#Do some cap standards, only the first word is capitalized
+camera_dat$taxize_plant_name<-tolower(camera_dat$taxize_plant_name)
+camera_dat$taxize_plant_name<-stri_trans_totitle(camera_dat$taxize_plant_name,opts_brkiter = stri_opts_brkiter(type = "sentence"))
 
-camera_dat<-camera_dat %>% filter(!plant_field_name %in% " ")
+#remove all periods
+camera_dat$taxize_plant_name<-str_replace(camera_dat$taxize_plant_name,"\\.","")
 
-cam_levels<-levels(camera_dat$final_plant_name)
-cam_taxize<-gnr_resolve(cam_levels,best_match_only=T,canonical = TRUE,data_source_ids=tropicos)
+#no space between sp and number
+camera_dat$taxize_plant_name<-str_replace(camera_dat$taxize_plant_name,"sp (\\d)","sp\\1")
 
-#only keep species with matched double names
-plants_keep<-cam_taxize$submitted_name[sapply(strsplit(cam_taxize$matched_name2," "),length)==2]
-plants_missing<-cam_taxize$submitted_name[!sapply(strsplit(cam_taxize$matched_name2," "),length)==2]
+#Look up taxize names against tropicos
+sources <- gnr_datasources()
+tropicos<-sources$id[sources$title == 'Tropicos - Missouri Botanical Garden']
 
-camera_missing<-camera_dat %>% filter(!final_plant_name %in% plants_keep) %>% select(site,final_plant_name) %>% distinct()
-camera_dat<-camera_dat %>% filter(final_plant_name %in% plants_keep) %>% droplevels()
+#Create plant taxonomy factors by site (required for fransisco's data)
+tran_levels<-camera_dat %>% distinct(taxize_plant_name) %>% filter(!is.na(taxize_plant_name))
 
-#for formatted lavels
-for (x in levels(camera_dat$final_plant_name)){
-  levels(camera_dat$final_plant_name)[levels(camera_dat$final_plant_name) %in% x]<-cam_taxize %>% filter(submitted_name %in% x) %>% .$matched_name2
+#send to tropicos
+tran_taxize<-gnr_resolve(tran_levels$taxize_plant_name,best_match_only=T,canonical = TRUE,data_source_ids=tropicos) 
+
+#only keep species with matched double names - the rest are unknown to tropicos
+plants_keep<-tran_taxize %>% filter(matched_name2 %in% tran_taxize$matched_name2[str_count(tran_taxize$matched_name2,"\\w+")==2]) %>% .$user_supplied_name
+
+#replace with taxized names, fixes spelling errors
+for(plant_name in plants_keep){
+  camera_dat[camera_dat$taxize_plant_name %in% plant_name,"taxize_plant_name"]<-tran_taxize[tran_taxize$user_supplied_name == plant_name,"matched_name2"]
+}
+```
+
+```{r}
+#matched with fransiscos names based on site. Drop unknown for now. Not convinced this is complete. Cannot join, need to proceed slowly.
+camera_dat$final_plant_name<-camera_dat$taxize_plant_name
+for(i in 1:nrow(taxsheet)){
+  camera_dat[camera_dat$site %in% taxsheet$site[i] & camera_dat$taxize_plant_name %in% taxsheet$taxize_plant_name[i],"final_plant_name"]<-taxsheet$final_plant_name[i]
 }
 
-camera_dat<-droplevels(camera_dat)
+#Missing taxonomy defined as neither in the tropicos or fransisco's taxonomy database
+final_levels<-unique(camera_dat$final_plant_name)
+not_in_tropicos<-final_levels[!final_levels %in% tran_taxize$matched_name2]
+plants_missing<-not_in_tropicos[!not_in_tropicos %in% taxsheet$final_plant_name]
+```
+
+What percentage of cameras names remain missing?
+
+```{r}
+camera_dat %>% filter(!is.na(final_plant_name),!final_plant_name %in% c(" ","")) %>% mutate(missing=final_plant_name %in% plants_missing) %>% group_by(site) %>% summarize(n=sum(missing)/n()*100)
+```
+
+```{r}
+#Create missing plant index.
+plant_tax_needed<-camera_dat %>% filter(final_plant_name %in% plants_missing,!is.na(final_plant_name),!final_plant_name %in% c(" ","")) %>% distinct(site,final_plant_name)
+write.csv(plant_tax_needed,"camera_missing_taxonomy.csv")
+
+#write for each site
+sites<-unique(transect_data$site)
+for(x in 1:length(sites)){
+ plant_tax_needed %>% filter(site==sites[x]) %>% write.csv(.,paste("/Users/Ben/Dropbox/HummingbirdProject/Data/",sites[x],"Cameras_Missing_Taxonomy.csv",sep="/"))
+}
 ```
 
 ## Combine with gps data
 
 ```{r}
-camera_gps<-camera_dat %>% select(-Month) %>% left_join(wpoints,by=c("site","waypoint")) 
+#make sure wpoints is singular with respect to site waypoints.
+gps_tojoin_camera<-wpoints %>% filter(waypoint %in% camera_dat$waypoint ) %>% group_by(site,waypoint) %>% summarize(lon=mean(lon),lat=mean(lat),ele=mean(as.numeric(ele),na.rm=T),time=max(time),Month=max(Month))
+
+camera_gps<-camera_dat %>% select(-Month) %>% left_join(gps_tojoin_camera,by=c("site","waypoint")) 
 paste(camera_gps %>% filter(is.na(lon)) %>% nrow(.), "camera points missing GPS data from",  nrow(camera_gps))
 camera_gps %>% filter(is.na(lon)) %>% group_by(site) %>% summarize(n=n()) %>% arrange(desc(n))
-
 ```
 
 ## Write to file
@@ -414,7 +519,6 @@ int_files<-list.files(basename,recursive=TRUE,pattern="observations",full.names 
 int_files<-int_files[!int_files %in% "/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco/Disturbio/foundframes/Disturbio/observations_UPDC-Disturbio.xlsx"]
 
 int_data<-lapply(int_files,function(x){
-  print(x)
   if(str_detect(x,".xlsx")){
     j<-read_excel(x,trim_ws = T)
     try(j$site<-str_match(x,"(\\w+)/observations")[2],silent=T)
@@ -422,7 +526,6 @@ int_data<-lapply(int_files,function(x){
     j$filename<-as.character(j$filename)
     j$date<-as.character(j$date)
     j$waypoint<-as.character(j$waypoint)
-    print(dim(j))
     return(j)
   }
   if(str_detect(x,".csv")){
@@ -438,17 +541,25 @@ int_data<-lapply(int_files,function(x){
 })
 
 int_data<-bind_rows(int_data)
+
+#drop duplicate rows
+int_data<-int_data[!duplicated(int_data),]
 ```
 
 ## Cleaning
+
+### Hummingbird names
+
+The status of Phaethornis baroni needs to be fixed? Not clear if this is an accepted at species or subspecies level. Taxize is rejecting it. Thalurania colombica fannyi too.
 
 ```{r}
 #conservatively remove questionable records
 int_data<-int_data %>% filter(!is.na(hummingbird))
 int_data$hummingbird[int_data$hummingbird %in% "Ocreatus underwoodi"]<-"Ocreatus underwoodii"
+
 #remove ? from names, treated as wildcard for taxize
 int_data<-int_data[!str_detect(int_data$hummingbird,"\\?"),] 
-
+  
 #refactor
 int_data$hummingbird<-as.factor(int_data$hummingbird)
 
@@ -462,7 +573,7 @@ int_data[int_data$hummingbird %in% "","hummingbird"]<-NA
 int_data$hummingbird<-factor(int_data$hummingbird)
 
 #lookup taxize
-int_taxize<-gnr_resolve(int_levels,best_match_only=T,canonical = TRUE)
+int_taxize<-gnr_resolve(int_levels,best_match_only=T,canonical=TRUE)
 
 #only keep species with matched double names
 hum_keep<-int_taxize$submitted_name[sapply(strsplit(int_taxize$matched_name2," "),length)==2]
@@ -478,29 +589,32 @@ for (x in levels(int_data$hummingbird)){
 int_data<-droplevels(int_data)
 
 #only hummingbirds
+Sys.setenv(ENTREZ_KEY="f00b6e4c6b153028dfbe9389cd18f0a46b08")
 isclass<-tax_name(query = levels(int_data$hummingbird), get = "family", db = "ncbi")
-troch_keep<-isclass %>% filter(family =="Trochilidae") %>% .$query
-
+troch_keep<-isclass %>% filter(family %in% c("Trochilidae","Thraupidae")) %>% .$query
 int_data<-int_data %>% filter(hummingbird %in% troch_keep) %>% droplevels()
+```
 
-#Holger had one month where he entered all the frames.
+```{r}
+### Holger had one month where he entered all the frames.
 #Loop through frames and remove consecutives.
-diff_frame<-function(x,ID){
-  framenum<-as.numeric(str_match(x,"(\\w+).jpg")[,2])
+diff_frame<-function(x){
+  framenum<-as.numeric(str_match(x$filename,"(\\w+).jpg")[,2])
   out<-c()
-  if(length(x)==1){
+  if(length(framenum)==1){
     out<-NA
-    return(data.frame(ID=ID,frames_since=out))
+    return(data.frame(ID=unique(x$waypoint),filename=NA,frames_since=out))
   }
     for(i in 2:length(framenum)){
       out[i]<-framenum[i]-framenum[i-1]
     }
-  return(data.frame(ID=ID,frames_since=out))
+  return(data.frame(ID=unique(x$waypoint)[1],filename=x$filename,frames_since=out))
 }
 
 int_data$ID<-1:nrow(int_data)
-too_close<-int_data %>% filter(date=="") %>% group_by(folder) %>% do(diff_frame(.$filename,.$ID)) %>% filter(frames_since > 0 & frames_since < 5) 
-int_data<-int_data %>% filter(!ID %in% too_close$ID) %>% select(-ID)
+too_close<-int_data %>% group_by(folder) %>% do(diff_frame(.)) %>% filter(!is.na(frames_since),frames_since < 20) %>% rename(waypoint=ID)
+
+int_data<-int_data %>% anti_join(too_close)
 
 #fill empty dates
 a<-int_data %>% filter(date=="") %>% mutate(newdate=str_match(folder,"/(\\d+)")[,2]) %>% .$newdate
@@ -511,38 +625,15 @@ int_data[int_data$date %in% "","date"]<-format(as.POSIXct(a,format="%y%m%d",tz="
 
 ```{r}
 tojoin<-camera_gps %>% select(site,waypoint,final_plant_name,lon,lat,ele)
-int_gps<-int_data %>% left_join(tojoin,by=c("site","waypoint"))
+int_gps<-int_data %>% left_join(tojoin,by=c("site","waypoint")) %>% select(ID,hummingbird,final_plant_name,folder,filename,date,time,revised_hummingbird,sex,piercing,site,waypoint,lon,lat,ele)
 
 #TODO check replicates here
 int_gps<-int_gps[!duplicated(int_gps),]
-
-int_gps<-int_gps %>% select(folder,filename,date,time,waypoint,lon,lat,ele,hummingbird,revised_hummingbird,final_plant_name,sex,feeding_activity,piercing,comment,site)
-
-int_gps %>% group_by(waypoint) %>% summarize(n=n()) %>% arrange(desc(n))
 ```
 
 ```{r}
 #label events
 int_gps$ID=1:nrow(int_gps)
-
-#interactions within 20 seconds are condensced to the same event
-int_gps$timestamp<-as.POSIXct(paste(int_gps$date,int_gps$time),format=" %d/%m/%Y %H:%M:%S",tz="EST")
-
-difftimeall<-function(x,ID){
-  out<-c()
-  if(length(x)==1){
-    out<-NA
-    return(data.frame(ID=ID,time_since=out))
-  }
-    for(i in 2:length(x)){
-      out[i]<-difftime(x[i],x[i-1],units="mins")
-    }
-  return(data.frame(ID=ID,time_since=out))
-}
-
-#remove observations within 1 minute
-too_close<-int_gps %>% group_by(site,waypoint) %>% arrange(timestamp) %>% do(difftimeall(.$timestamp,.$ID)) %>% filter(time_since<1)  
-int_gps<-int_gps %>% filter(!ID  %in% too_close$ID)
 
 #drop without hummingbird data
 int_gps<-int_gps %>% filter(!is.na(hummingbird))
@@ -552,6 +643,9 @@ paste(int_gps %>% filter(is.na(lon)) %>% nrow(.), "records missing gps data", "f
 
 print("Missing GPS records by site")
 int_gps %>% filter(is.na(lon)) %>% group_by(site) %>% summarize(n=n()) %>% arrange(desc(n))
+
+print("Missing GPS cameras by site")
+int_gps %>% filter(is.na(lon)) %>% group_by(site) %>% summarize(n=length(unique(waypoint))) %>% arrange(desc(n))
 ```
 
 ## Write to file
@@ -562,19 +656,5 @@ write.csv(int_gps,"/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProject
 
 #write to shiny server
 write.csv(int_gps,"HummingbirdData/Interactions.csv")
-```
-
-Generate error scripts for cameras
-
-```{r}
-sites<-unique(missing_transect_gps$site)
-
-for(x in 1:length(sites)){
-  
-  camera_missing %>% filter(site==sites[x]) %>% write.csv(.,paste("/Users/Ben/Dropbox/HummingbirdProject/Data/",sites[x],"Camera_Missing_Taxonomy.csv",sep="/"))
-  
-      camera_gps %>% filter(is.na(lon),site==sites[x]) %>% write.csv(.,paste("/Users/Ben/Dropbox/HummingbirdProject/Data/",sites[x],"Camera_Missing_GPS.csv",sep="/"))
-
-}
 ```
 

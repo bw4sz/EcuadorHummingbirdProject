@@ -128,6 +128,12 @@ $(document).ready(function () {
 </div>
 
 
+<p>Read google sheet of taxonomy</p>
+<pre class="r"><code>gs_auth()
+ss&lt;-gs_title(&quot;LISTA PLANTA_FINAL_TODOS_13112018&quot;)
+tax&lt;-ss %&gt;% gs_read(&quot;Hoja1&quot;)
+
+abb&lt;-data.frame(Abb=c(&quot;RUMI&quot;,&quot;MSPL&quot;,&quot;VECO&quot;,&quot;MSPC&quot;,&quot;ALAS&quot;,&quot;GRAL&quot;,&quot;UPDC&quot;,&quot;MAQUI&quot;,&quot;UPDCD&quot;,&quot;YANA&quot;,&quot;YANAD&quot;,&quot;ALASD&quot;,&quot;STLU&quot;,&quot;PUYU&quot;,&quot;SACH&quot;,&quot;STLL&quot;,&quot;SACHD&quot;,&quot;AMAG&quot;),Site=c(&quot;Rumisitana&quot;,&quot;MashpiLaguna&quot;,&quot;Verdecocha&quot;,&quot;MashpiCapuchin&quot;,&quot;Alaspungo&quot;,&quot;LasGralarias&quot;,&quot;UnPocoDelChoco&quot;,&quot;Maquipucuna&quot;,&quot;UnPocoDelChoco_disturbed&quot;,&quot;Yanacocha&quot;,&quot;Yanacocha_disturbed&quot;,&quot;Alaspungo_disturbed&quot;,&quot;SantaLuciaUpper&quot;,&quot;Puyucunapi&quot;,&quot;Sachatamia&quot;,&quot;SantaLuciaLower&quot;,&quot;Sachatamia_disturbed&quot;,&quot;Amagusa&quot;))</code></pre>
 <div id="gps-data" class="section level1">
 <h1>GPS Data</h1>
 <pre class="r"><code>allwaypoints&lt;-list.files(basename,recursive=TRUE,full.name=TRUE,pattern=&quot;.gpx&quot;)</code></pre>
@@ -148,6 +154,14 @@ wayfiles&lt;-function(x){
   }
 wpoints&lt;-lapply(allwaypoints,wayfiles)</code></pre>
 <pre><code>## expected '&gt;'
+## [1] &quot;missing&quot;
+## Start tag expected, '&lt;' not found
+## [1] &quot;missing&quot;
+## Start tag expected, '&lt;' not found
+## [1] &quot;missing&quot;
+## Start tag expected, '&lt;' not found
+## [1] &quot;missing&quot;
+## Start tag expected, '&lt;' not found
 ## [1] &quot;missing&quot;</code></pre>
 <pre class="r"><code>wpoints&lt;-wpoints[!sapply(wpoints,length)==1]
 
@@ -253,6 +267,7 @@ transect_xlsx&lt;-lapply(transect_files,function(x){
     y$flower_unit&lt;-as.character(y$flower_unit)
     y$flower_count1&lt;-as.character(y$flower_count1)
     y$flower_count3&lt;-as.character(y$flower_count3)
+    y$count_method&lt;-as.character(y$count_method)
 
   }
   
@@ -268,16 +283,13 @@ transect_xlsx&lt;-lapply(transect_files,function(x){
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//MashpiLaguna/transect_MashpiLaguna.xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Puyucunapi/transect_Puyucunapi_disturbed.xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Rumisitana/transect_Rumisitana_disturbed.xlsx&quot;
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Sachatamia_disturbed/transect_Sachatamia_disturbed (Copia en conflicto de Esteban Guevara 2018-09-04).xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Sachatamia_disturbed/transect_Sachatamia_disturbed.xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Sachatamia/transect_Sachatamia.xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//SantaLuciaLower/transect_SantaLuciaLower.csv&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//SantaLuciaUpper/transect_SantaLuciaUpper.csv&quot;
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco_disturbed/transect_UPDC_disturbed (Copia en conflicto de Esteban Guevara 2018-09-04).xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco_disturbed/transect_UPDC_disturbed.xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco/transect_UnPocoDelChoco.xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Verdecocha/transect_Verdecocha.xlsx&quot;
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Yanacocha_disturbed/transect_Yanacocha_disturbed (Copia en conflicto de Esteban Guevara 2018-09-04).xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Yanacocha_disturbed/transect_Yanacocha_disturbed.xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Yanacocha/transect_Yanacocha.xlsx&quot;</code></pre>
 <pre class="r"><code>#remove empty files
@@ -320,33 +332,38 @@ plants_missing&lt;-tran_taxize$submitted_name[!sapply(strsplit(tran_taxize$match
 
 transect_data %&gt;% mutate(missing=final_plant_name %in% plants_missing) %&gt;% group_by(site) %&gt;% summarize(n=sum(missing)/n()*100)</code></pre>
 <pre><code>## # A tibble: 19 x 2
-##    site                          n
-##    &lt;chr&gt;                     &lt;dbl&gt;
-##  1 Alaspungo                18.5  
-##  2 Alaspungo_disturbed       8.23 
-##  3 Amagusa                  21.6  
-##  4 Cambugan                 28.3  
-##  5 LasGralarias              9.99 
-##  6 Maquipucuna               3.65 
-##  7 MashpiCapuchin            7.92 
-##  8 MashpiLaguna             14.4  
-##  9 Puyucunapi                5.96 
-## 10 Rumisitana                4.82 
-## 11 Sachatamia                3.22 
-## 12 Sachatamia_disturbed     10.6  
-## 13 SantaLuciaLower           1.91 
-## 14 SantaLuciaUpper           1.40 
-## 15 UnPocoDelChoco            0.271
-## 16 UnPocoDelChoco_disturbed  0.229
-## 17 Verdecocha                1.56 
-## 18 Yanacocha                 0.306
-## 19 Yanacocha_disturbed       2.59</code></pre>
+##    site                           n
+##    &lt;chr&gt;                      &lt;dbl&gt;
+##  1 Alaspungo                16.7   
+##  2 Alaspungo_disturbed       8.34  
+##  3 Amagusa                   5.90  
+##  4 Cambugan                 28.3   
+##  5 LasGralarias              7.06  
+##  6 Maquipucuna               0     
+##  7 MashpiCapuchin            7.16  
+##  8 MashpiLaguna             12.9   
+##  9 Puyucunapi                3.91  
+## 10 Rumisitana               12.2   
+## 11 Sachatamia                5.77  
+## 12 Sachatamia_disturbed      4.73  
+## 13 SantaLuciaLower           2.61  
+## 14 SantaLuciaUpper           0     
+## 15 UnPocoDelChoco            0.0785
+## 16 UnPocoDelChoco_disturbed  0     
+## 17 Verdecocha                1.56  
+## 18 Yanacocha                 0.282 
+## 19 Yanacocha_disturbed       0.608</code></pre>
 <pre class="r"><code>#Create missing plant index.
 plant_tax_needed&lt;-transect_data %&gt;% filter(final_plant_name %in% plants_missing) %&gt;% distinct(site,final_plant_name) 
 write.csv(plant_tax_needed,&quot;missing_taxonomy.csv&quot;)
 
 #write for each site
-transect_data&lt;-transect_data %&gt;% filter(final_plant_name %in% plants_keep) %&gt;% 
+sites&lt;-unique(transect_data$site)
+for(x in 1:length(sites)){
+  
+  transect_data %&gt;% filter(final_plant_name %in% plants_missing) %&gt;% distinct(site,final_plant_name) %&gt;% filter(site==sites[x]) %&gt;% write.csv(.,paste(&quot;/Users/Ben/Dropbox/HummingbirdProject/Data/&quot;,sites[x],&quot;Transects_Missing_Taxonomy.csv&quot;,sep=&quot;/&quot;))
+}</code></pre>
+<pre class="r"><code>transect_data&lt;-transect_data %&gt;% filter(final_plant_name %in% plants_keep) %&gt;% 
 select(date,Month,Year,site,final_plant_name,total_flowers,waypoint,height,hummingbird,comment) %&gt;% droplevels()
 
 #fix mistakes
@@ -381,17 +398,13 @@ for (x in levels(transect_data$hummingbird)){
 <pre class="r"><code>transect_gps&lt;-transect_data %&gt;% left_join(wpoints,by=c(&quot;site&quot;,&quot;Month&quot;,&quot;waypoint&quot;))
 
 paste(missing&lt;-transect_gps %&gt;% filter(is.na(lon)) %&gt;% nrow(.), &quot;transect points&quot;, &quot;out of&quot;, nrow(transect_gps), &quot;missing GPS data&quot;)</code></pre>
-<pre><code>## [1] &quot;5102 transect points out of 24006 missing GPS data&quot;</code></pre>
+<pre><code>## [1] &quot;3856 transect points out of 22021 missing GPS data&quot;</code></pre>
 <pre class="r"><code>missing_transect_gps&lt;-transect_gps %&gt;% filter(is.na(lon)) %&gt;% group_by(site,date) %&gt;% summarize(n=n()) %&gt;% arrange(desc(n))
 
 write.csv(missing_transect_gps,&quot;missing_transect_dates.csv&quot;)</code></pre>
 <p>Generate error scripts</p>
-<pre class="r"><code>sites&lt;-unique(missing_transect_gps$site)
-
-for(x in 1:length(sites)){
+<pre class="r"><code>for(x in 1:length(sites)){
   
-  transect_data %&gt;% filter(final_plant_name %in% plants_missing) %&gt;% distinct(site,final_plant_name) %&gt;% filter(site==sites[x]) %&gt;% write.csv(.,paste(&quot;/Users/Ben/Dropbox/HummingbirdProject/Data/&quot;,sites[x],&quot;Transects_Missing_Taxonomy.csv&quot;,sep=&quot;/&quot;))
-
   missing_transect_gps %&gt;% filter(site==sites[x]) %&gt;% write.csv(.,paste(&quot;/Users/Ben/Dropbox/HummingbirdProject/Data/&quot;,sites[x],&quot;Transects_Missing_GPS.csv&quot;,sep=&quot;/&quot;))
 }</code></pre>
 </div>
@@ -470,7 +483,6 @@ camera_xlsx&lt;-lapply(camera_files,function(x){
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Sachatamia/cameras_Sachatamia.xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//SantaLuciaLower/cameras_SantaLuciaLower.csv&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//SantaLuciaUpper/cameras_SantaLuciaUpper.csv&quot;
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco_disturbed/cameras_UPDC_disturbed (Copia en conflicto de Esteban Guevara 2018-09-04).xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco_disturbed/cameras_UPDC_disturbed.xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco/cameras_UnPocoDelChoco.xlsx&quot;
 ## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Verdecocha/cameras_Verdecocha.xlsx&quot;
@@ -483,7 +495,23 @@ camera_dat&lt;-camera_dat %&gt;% select(start_date,start_time,end_date,end_time,
 
 #Month and year column
 camera_dat$Month&lt;-months(strptime(camera_dat$start_date,&quot;%d/%m/%Y&quot;))
-camera_dat$Year&lt;-years(strptime(camera_dat$start_date,&quot;%d/%m/%Y&quot;))</code></pre>
+camera_dat$Year&lt;-years(strptime(camera_dat$start_date,&quot;%d/%m/%Y&quot;))
+
+camera_dat %&gt;% filter(is.na(Month)) %&gt;% group_by(site) %&gt;% summarize(n=n())</code></pre>
+<pre><code>## # A tibble: 11 x 2
+##    site                         n
+##    &lt;chr&gt;                    &lt;int&gt;
+##  1 Alaspungo_disturbed          7
+##  2 LasGralarias                 1
+##  3 MashpiCapuchin             185
+##  4 MashpiLaguna                83
+##  5 Sachatamia                 209
+##  6 Sachatamia_disturbed         8
+##  7 UnPocoDelChoco             240
+##  8 UnPocoDelChoco_disturbed    75
+##  9 Verdecocha                 224
+## 10 Yanacocha                    6
+## 11 Yanacocha_disturbed         38</code></pre>
 <div id="taxonomy-cleaning" class="section level2">
 <h2>Taxonomy Cleaning</h2>
 <pre class="r"><code>#If revised plant name exists, replace
@@ -518,32 +546,35 @@ camera_dat&lt;-droplevels(camera_dat)</code></pre>
 </div>
 <div id="combine-with-gps-data-1" class="section level2">
 <h2>Combine with gps data</h2>
-<pre class="r"><code>camera_gps&lt;-camera_dat %&gt;% select(-Month) %&gt;% left_join(wpoints,by=c(&quot;site&quot;,&quot;waypoint&quot;)) 
+<pre class="r"><code>#make sure wpoints is singular with respect to site waypoints.
+gps_tojoin_camera&lt;-wpoints %&gt;% filter(waypoint %in% camera_dat$waypoint ) %&gt;% group_by(site,waypoint) %&gt;% summarize(lon=mean(lon),lat=mean(lat),ele=mean(as.numeric(ele),na.rm=T),time=max(time),Month=max(Month))
+
+camera_gps&lt;-camera_dat %&gt;% select(-Month) %&gt;% left_join(gps_tojoin_camera,by=c(&quot;site&quot;,&quot;waypoint&quot;)) 
 paste(camera_gps %&gt;% filter(is.na(lon)) %&gt;% nrow(.), &quot;camera points missing GPS data from&quot;,  nrow(camera_gps))</code></pre>
-<pre><code>## [1] &quot;527 camera points missing GPS data from 2062&quot;</code></pre>
+<pre><code>## [1] &quot;594 camera points missing GPS data from 2451&quot;</code></pre>
 <pre class="r"><code>camera_gps %&gt;% filter(is.na(lon)) %&gt;% group_by(site) %&gt;% summarize(n=n()) %&gt;% arrange(desc(n))</code></pre>
 <pre><code>## # A tibble: 19 x 2
 ##    site                         n
 ##    &lt;chr&gt;                    &lt;int&gt;
-##  1 LasGralarias                55
-##  2 MashpiLaguna                47
-##  3 Alaspungo_disturbed         41
-##  4 MashpiCapuchin              39
-##  5 Amagusa                     37
-##  6 Rumisitana                  36
-##  7 Puyucunapi                  35
-##  8 Yanacocha_disturbed         32
-##  9 Verdecocha                  30
-## 10 Yanacocha                   30
-## 11 Alaspungo                   29
-## 12 Sachatamia_disturbed        29
-## 13 Sachatamia                  23
-## 14 UnPocoDelChoco              21
-## 15 Maquipucuna                 14
+##  1 LasGralarias                67
+##  2 Yanacocha                   52
+##  3 MashpiLaguna                51
+##  4 Verdecocha                  49
+##  5 Rumisitana                  48
+##  6 Puyucunapi                  45
+##  7 Yanacocha_disturbed         44
+##  8 Alaspungo_disturbed         37
+##  9 Amagusa                     32
+## 10 MashpiCapuchin              32
+## 11 Sachatamia_disturbed        30
+## 12 Alaspungo                   29
+## 13 UnPocoDelChoco              26
+## 14 Sachatamia                  15
+## 15 Maquipucuna                 11
 ## 16 UnPocoDelChoco_disturbed    11
-## 17 SantaLuciaUpper              8
+## 17 SantaLuciaUpper              7
 ## 18 Cambugan                     5
-## 19 SantaLuciaLower              5</code></pre>
+## 19 SantaLuciaLower              3</code></pre>
 </div>
 <div id="write-to-file-1" class="section level2">
 <h2>Write to file</h2>
@@ -562,7 +593,6 @@ write.csv(camera_dat,&quot;HummingbirdData/Cameras.csv&quot;)</code></pre>
 int_files&lt;-int_files[!int_files %in% &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco/Disturbio/foundframes/Disturbio/observations_UPDC-Disturbio.xlsx&quot;]
 
 int_data&lt;-lapply(int_files,function(x){
-  print(x)
   if(str_detect(x,&quot;.xlsx&quot;)){
     j&lt;-read_excel(x,trim_ws = T)
     try(j$site&lt;-str_match(x,&quot;(\\w+)/observations&quot;)[2],silent=T)
@@ -584,46 +614,26 @@ int_data&lt;-lapply(int_files,function(x){
   }
   
 })</code></pre>
-<pre><code>## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Alaspungo_disturbed/observations_Alaspungo_disturbed.xlsx&quot;
-## [1] 485  12
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Alaspungo/observations_Alaspungo.xlsx&quot;
-## [1] 1105   12
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Amagusa/observations_Amagusa_disturbed (Esteban Guevara's conflicted copy).xlsx&quot;
-## [1] 281  12
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Amagusa/observations_Amagusa_disturbed.xlsx&quot;
-## [1] 281  12
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Cambugan/observations_cambugan.xlsx&quot;
+<pre><code>## [1] 743  12
+## [1] 1602   12
+## [1] 409  12
 ## [1]  0 11
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//LasGralarias/observations_lasgralarias.xlsx&quot;
-## [1] 1508   12
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Maquipucuna/observations_Maquipucuna.csv&quot;
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//MashpiCapuchin/observations_MashpiCapuchin.xlsx&quot;
-## [1] 1763   12
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//MashpiLaguna/observations_MashpiLaguna.xlsx&quot;
-## [1] 1021   12
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Puyucunapi/observations_Puyucunapi_disturbed.xlsx&quot;
-## [1] 558  12
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Rumisitana/observations_Rumisitana_disturbed.xlsx&quot;
-## [1] 138  12
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Sachatamia_disturbed/observations_Sachatamia_disturbed.xlsx&quot;
-## [1] 605  12
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Sachatamia/observations_Sachatamia.xlsx&quot;
-## [1] 1788   12
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//SantaLuciaLower/observations_SantaLuciaLower.csv&quot;
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//SantaLuciaUpper/observations_SantaLuciaUpper.csv&quot;
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco_disturbed/observations_UPDC_disturbed (Copia en conflicto de Esteban Guevara 2018-09-04).xlsx&quot;
-## [1] 580  17
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco_disturbed/observations_UPDC_disturbed.xlsx&quot;
-## [1] 616  26
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//UnPocoDelChoco/observations_UnPocoDelChoco.xlsx&quot;
-## [1] 1385   13
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Verdecocha/observations_Verdecocha.xlsx&quot;
-## [1] 1891   16
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Yanacocha_disturbed/observations_Yanacocha_disturbed.xlsx&quot;
-## [1] 367  12
-## [1] &quot;/Users/Ben/Dropbox/HummingbirdProject/Data//Yanacocha/observations_Yanacocha.xlsx&quot;
-## [1] 2156   13</code></pre>
-<pre class="r"><code>int_data&lt;-bind_rows(int_data)</code></pre>
+## [1] 1743   12
+## [1] 1932   12
+## [1] 1153   12
+## [1] 879  12
+## [1] 331  12
+## [1] 1174   12
+## [1] 2030   12
+## [1] 828  26
+## [1] 1683   13
+## [1] 2164   16
+## [1] 449  12
+## [1] 2215   13</code></pre>
+<pre class="r"><code>int_data&lt;-bind_rows(int_data)
+
+#drop duplicate rows
+int_data&lt;-int_data[!duplicated(int_data),]</code></pre>
 <div id="cleaning-1" class="section level2">
 <h2>Cleaning</h2>
 <pre class="r"><code>#conservatively remove questionable records
@@ -661,355 +671,150 @@ for (x in levels(int_data$hummingbird)){
 int_data&lt;-droplevels(int_data)
 
 #only hummingbirds
+
+Sys.setenv(ENTREZ_KEY=&quot;f00b6e4c6b153028dfbe9389cd18f0a46b08&quot;)
+
 isclass&lt;-tax_name(query = levels(int_data$hummingbird), get = &quot;family&quot;, db = &quot;ncbi&quot;)</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Adelomyia melanogenys'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Aglaeactis cupripennis'</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Aglaiocercus coelestis'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Amazilia amabilis'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Amazilia franciae'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Amazilia tzacatl'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Androdon aequatorialis'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Atlapetes tricolor'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Aulacorhynchus haematopygus'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Boissonneaua flavescens'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Boissonneaua jardini'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Calliphlox mitchellii'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Chalcostigma herrani'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Chlorostilbon melanorhynchus'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Chlorostilbon mellisugus'</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Coeligena lutetiae'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Coeligena torquata'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Coeligena wilsoni'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Colibri coruscans'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Colibri delphinae'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Colibri thalassinus'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Diglossa albilatera'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Diglossa lafresnayii'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Doryfera ludovicae'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Ensifera ensifera'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Eriocnemis luciani'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Eriocnemis mosquera'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Eriocnemis nigrivestis'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Euphonia xanthogaster'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Eutoxeres aquila'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Florisuga mellivora'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Heliangelus strophianus'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Heliodoxa imperatrix'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Heliodoxa jacula'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Heliodoxa leadbeateri'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Heliodoxa rubinoides'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Heliomaster longirostris'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Heliothryx barroti'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Henicorhina leucophrys'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Lafresnaya lafresnayi'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
+<pre><code>## 
+## Retrieving data for taxon 'Lafresnaya lafresnaya'</code></pre>
+<pre><code>## Not found. Consider checking the spelling or alternate classification</code></pre>
+<pre><code>## No UID found for species 'Lafresnaya lafresnaya'!</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Lesbia nuna'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Metallura tyrianthina'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Ocreatus underwoodii'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Phaethornis striigularis'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Phaethornis yaruqui'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Phaethornis baroni'</code></pre>
 <pre><code>## Not found. Consider checking the spelling or alternate classification</code></pre>
 <pre><code>## No UID found for species 'Phaethornis baroni'!</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
-<pre><code>## 
-## Retrieving data for taxon 'Phaethornis griseogularis'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Phaethornis malaris'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Phaethornis syrmatophorus'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Popelairia conversii'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Pterophanes cyanopterus'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Schistes geoffroyi'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Thalurania fannyi'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Threnetes ruckeri'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Trogon collaris'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/
-## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre><code>## 
 ## Retrieving data for taxon 'Urosticte benjamini'</code></pre>
-<pre><code>## No ENTREZ API key provided
-## See https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/</code></pre>
 <pre class="r"><code>troch_keep&lt;-isclass %&gt;% filter(family ==&quot;Trochilidae&quot;) %&gt;% .$query
 
-int_data&lt;-int_data %&gt;% filter(hummingbird %in% troch_keep) %&gt;% droplevels()
-
-#Holger had one month where he entered all the frames.
+int_data&lt;-int_data %&gt;% filter(hummingbird %in% troch_keep) %&gt;% droplevels()</code></pre>
+<pre class="r"><code>### Holger had one month where he entered all the frames.
 #Loop through frames and remove consecutives.
-diff_frame&lt;-function(x,ID){
-  framenum&lt;-as.numeric(str_match(x,&quot;(\\w+).jpg&quot;)[,2])
+diff_frame&lt;-function(x){
+  framenum&lt;-as.numeric(str_match(x$filename,&quot;(\\w+).jpg&quot;)[,2])
   out&lt;-c()
-  if(length(x)==1){
+  if(length(framenum)==1){
     out&lt;-NA
-    return(data.frame(ID=ID,frames_since=out))
+    return(data.frame(ID=unique(x$waypoint),filename=NA,frames_since=out))
   }
     for(i in 2:length(framenum)){
       out[i]&lt;-framenum[i]-framenum[i-1]
     }
-  return(data.frame(ID=ID,frames_since=out))
+  return(data.frame(ID=unique(x$waypoint),filename=x$filename,frames_since=out))
 }
 
 int_data$ID&lt;-1:nrow(int_data)
-too_close&lt;-int_data %&gt;% filter(date==&quot;&quot;) %&gt;% group_by(folder) %&gt;% do(diff_frame(.$filename,.$ID)) %&gt;% filter(frames_since &gt; 0 &amp; frames_since &lt; 5) 
-int_data&lt;-int_data %&gt;% filter(!ID %in% too_close$ID) %&gt;% select(-ID)
+too_close&lt;-int_data %&gt;% group_by(folder) %&gt;% do(diff_frame(.)) %&gt;% filter(!is.na(frames_since),frames_since &lt; 20) %&gt;% rename(waypoint=ID)
 
-#fill empty dates
+int_data&lt;-int_data %&gt;% anti_join(too_close)</code></pre>
+<pre><code>## Joining, by = c(&quot;folder&quot;, &quot;filename&quot;, &quot;waypoint&quot;)</code></pre>
+<pre class="r"><code>#fill empty dates
 a&lt;-int_data %&gt;% filter(date==&quot;&quot;) %&gt;% mutate(newdate=str_match(folder,&quot;/(\\d+)&quot;)[,2]) %&gt;% .$newdate
 int_data[int_data$date %in% &quot;&quot;,&quot;date&quot;]&lt;-format(as.POSIXct(a,format=&quot;%y%m%d&quot;,tz=&quot;&quot;),&quot;%d/%m%/%Y&quot;)</code></pre>
 </div>
@@ -1024,72 +829,96 @@ int_gps&lt;-int_gps[!duplicated(int_gps),]
 int_gps&lt;-int_gps %&gt;% select(folder,filename,date,time,waypoint,lon,lat,ele,hummingbird,revised_hummingbird,final_plant_name,sex,feeding_activity,piercing,comment,site)
 
 int_gps %&gt;% group_by(waypoint) %&gt;% summarize(n=n()) %&gt;% arrange(desc(n))</code></pre>
-<pre><code>## # A tibble: 1,620 x 2
+<pre><code>## # A tibble: 1,911 x 2
 ##    waypoint      n
 ##    &lt;chr&gt;     &lt;int&gt;
-##  1 MQPC2305    171
-##  2 AMAGD6202   142
-##  3 UPDC7003D   138
+##  1 MQPC2305    170
+##  2 ALAS6122    146
+##  3 ALAS6922    130
 ##  4 YANA3723    124
-##  5 UPDC0223    116
-##  6 MSPC1322    109
-##  7 &lt;NA&gt;        108
-##  8 PUYUD5303   105
-##  9 ALAS8503    101
-## 10 GRAL3011    100
-## # ... with 1,610 more rows</code></pre>
+##  5 VECO0904    118
+##  6 UPDC0223    116
+##  7 MSPC1322    112
+##  8 PUYUD5303   103
+##  9 SACHD9510   103
+## 10 ALAS8503    101
+## # ... with 1,901 more rows</code></pre>
 <pre class="r"><code>#label events
 int_gps$ID=1:nrow(int_gps)
-
-#interactions within 20 seconds are condensced to the same event
-int_gps$timestamp&lt;-as.POSIXct(paste(int_gps$date,int_gps$time),format=&quot; %d/%m/%Y %H:%M:%S&quot;,tz=&quot;EST&quot;)
-
-difftimeall&lt;-function(x,ID){
-  out&lt;-c()
-  if(length(x)==1){
-    out&lt;-NA
-    return(data.frame(ID=ID,time_since=out))
-  }
-    for(i in 2:length(x)){
-      out[i]&lt;-difftime(x[i],x[i-1],units=&quot;mins&quot;)
-    }
-  return(data.frame(ID=ID,time_since=out))
-}
-
-#remove observations within 1 minute
-too_close&lt;-int_gps %&gt;% group_by(site,waypoint) %&gt;% arrange(timestamp) %&gt;% do(difftimeall(.$timestamp,.$ID)) %&gt;% filter(time_since&lt;1)  
-int_gps&lt;-int_gps %&gt;% filter(!ID  %in% too_close$ID)
+# 
+# #interactions within 20 seconds are condensced to the same event
+# int_gps$timestamp&lt;-as.POSIXct(paste(int_gps$date,int_gps$time),format=&quot; %d/%m/%Y %H:%M:%S&quot;,tz=&quot;EST&quot;)
+# 
+# difftimeall&lt;-function(x,ID){
+#   out&lt;-c()
+#   if(length(x)==1){
+#     out&lt;-NA
+#     return(data.frame(ID=ID,time_since=out))
+#   }
+#     for(i in 2:length(x)){
+#       out[i]&lt;-difftime(x[i],x[i-1],units=&quot;mins&quot;)
+#     }
+#   return(data.frame(ID=ID,time_since=out))
+# }
+# 
+# #remove observations within 1 minute
+# too_close&lt;-int_gps %&gt;% group_by(site,waypoint) %&gt;% arrange(timestamp) %&gt;% do(difftimeall(.$timestamp,.$ID)) %&gt;% filter(time_since&lt;1)  
+# int_gps&lt;-int_gps %&gt;% filter(!ID  %in% too_close$ID)
 
 #drop without hummingbird data
 int_gps&lt;-int_gps %&gt;% filter(!is.na(hummingbird))
 
 #missing gps data
 paste(int_gps %&gt;% filter(is.na(lon)) %&gt;% nrow(.), &quot;records missing gps data&quot;, &quot;from&quot;,nrow(int_gps))</code></pre>
-<pre><code>## [1] &quot;6621 records missing gps data from 18637&quot;</code></pre>
+<pre><code>## [1] &quot;7665 records missing gps data from 22372&quot;</code></pre>
 <pre class="r"><code>print(&quot;Missing GPS records by site&quot;)</code></pre>
 <pre><code>## [1] &quot;Missing GPS records by site&quot;</code></pre>
 <pre class="r"><code>int_gps %&gt;% filter(is.na(lon)) %&gt;% group_by(site) %&gt;% summarize(n=n()) %&gt;% arrange(desc(n))</code></pre>
 <pre><code>## # A tibble: 18 x 2
 ##    site                         n
 ##    &lt;chr&gt;                    &lt;int&gt;
-##  1 Yanacocha                  597
-##  2 UnPocoDelChoco             576
-##  3 Alaspungo                  564
-##  4 UnPocoDelChoco_disturbed   535
-##  5 Amagusa                    528
-##  6 LasGralarias               479
-##  7 Puyucunapi                 433
-##  8 MashpiLaguna               404
-##  9 Alaspungo_disturbed        377
-## 10 Verdecocha                 361
-## 11 MashpiCapuchin             359
-## 12 Sachatamia_disturbed       303
-## 13 Sachatamia                 281
-## 14 Yanacocha_disturbed        246
-## 15 Maquipucuna                232
-## 16 SantaLuciaUpper            151
-## 17 SantaLuciaLower            102
-## 18 Rumisitana                  93</code></pre>
+##  1 Alaspungo                  791
+##  2 Sachatamia_disturbed       654
+##  3 Puyucunapi                 638
+##  4 SantaLuciaUpper            613
+##  5 Yanacocha                  599
+##  6 LasGralarias               591
+##  7 Alaspungo_disturbed        570
+##  8 MashpiLaguna               455
+##  9 Verdecocha                 374
+## 10 UnPocoDelChoco_disturbed   322
+## 11 MashpiCapuchin             309
+## 12 Amagusa                    302
+## 13 Yanacocha_disturbed        295
+## 14 Rumisitana                 275
+## 15 Maquipucuna                272
+## 16 UnPocoDelChoco             219
+## 17 SantaLuciaLower            216
+## 18 Sachatamia                 170</code></pre>
+<pre class="r"><code>print(&quot;Missing GPS cameras by site&quot;)</code></pre>
+<pre><code>## [1] &quot;Missing GPS cameras by site&quot;</code></pre>
+<pre class="r"><code>int_gps %&gt;% filter(is.na(lon)) %&gt;% group_by(site) %&gt;% summarize(n=length(unique(waypoint))) %&gt;% arrange(desc(n))</code></pre>
+<pre><code>## # A tibble: 18 x 2
+##    site                         n
+##    &lt;chr&gt;                    &lt;int&gt;
+##  1 LasGralarias                60
+##  2 MashpiLaguna                58
+##  3 Yanacocha                   44
+##  4 SantaLuciaUpper             42
+##  5 Verdecocha                  41
+##  6 Alaspungo                   37
+##  7 MashpiCapuchin              37
+##  8 Sachatamia                  35
+##  9 Puyucunapi                  33
+## 10 Sachatamia_disturbed        31
+## 11 Alaspungo_disturbed         30
+## 12 Maquipucuna                 29
+## 13 Amagusa                     27
+## 14 SantaLuciaLower             26
+## 15 UnPocoDelChoco              22
+## 16 Rumisitana                  20
+## 17 Yanacocha_disturbed         18
+## 18 UnPocoDelChoco_disturbed    17</code></pre>
 </div>
 <div id="write-to-file-2" class="section level2">
 <h2>Write to file</h2>

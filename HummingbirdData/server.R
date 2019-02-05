@@ -96,7 +96,7 @@ server <- function(input, output, session) {
   #bird elevation range                 
   hum_ord<-hum  %>% droplevels() %>% group_by(hummingbird) %>% summarize(e=mean(as.numeric(ele))) %>% arrange(e) %>% .$hummingbird
   hum$hummingbird <- factor(hum$hummingbird,levels=hum_ord)
-  hum_elev<-ggplot(hum,aes(x=hummingbird,y=as.numeric(ele))) + geom_boxplot(aes(fill=site)) + coord_flip() + theme_bw() + labs(y="Elevation(m)",x="Species",fill="Site") 
+  hum_elev<-ggplot(hum,aes(x=hummingbird,y=as.numeric(ele))) + geom_boxplot(fill="black") + coord_flip() + theme_bw() + labs(y="Elevation(m)",x="Species",fill="Site") 
   output$hum_elev<-renderPlot(hum_elev)
   
   ##plant map  

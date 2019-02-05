@@ -5,6 +5,6 @@ account: weinstein
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 177348
-bundleId: 1696539
+bundleId: 1858228
 url: https://weinstein.shinyapps.io/HummingbirdData/
-when: 1542043385.92871
+when: 1549402846.63096

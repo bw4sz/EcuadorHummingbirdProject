@@ -3,7 +3,7 @@ library(leaflet)
 library(dplyr)
 library(kableExtra)
 library(shinythemes)
-transects<-read.csv("PlantTransects.csv") %>% filter(!is.na(lat)) %>% droplevels()
+transects<-read.csv("PlantTransects.csv") %>% droplevels()
 int_data<-read.csv("Interactions.csv",row.names=1)
 
 plants<-levels(transects$final_plant_name)
@@ -28,7 +28,7 @@ shinyUI(
   "Each month our field team collects information on the hummingbird visited flowers along 12 1.5km transects",
   tableOutput('tran_table'),
   p("Our sites cover a wide elevation gradient from 800m to 3000m."),
-  plotOutput("plant_elev",width=1000,height=1300),
+  plotOutput("plant_elev",width=1000,height=1500),
   p("Available flowers change over time as new species come into bloom."),
   plotOutput('phenology',height=450,width=1250),
 

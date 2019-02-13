@@ -280,7 +280,7 @@ transect_data %>% filter(!is.na(final_plant_name),!final_plant_name %in% c(" ","
 
 ```{r}
 #Create missing plant index.
-plant_tax_needed<-transect_data %>% filter(final_plant_name %in% plants_missing,!is.na(final_plant_name),!final_plant_name %in% c(" ","")) %>% distinct(site,final_plant_name)
+plant_tax_needed<-transect_data %>% filter(final_plant_name %in% plants_missing,!is.na(final_plant_name),!final_plant_name %in% c(" ",""))  %>% group_by(site) %>% distinct(final_plant_name)
 write.csv(plant_tax_needed,"missing_taxonomy.csv")
 
 #write for each site
@@ -334,6 +334,8 @@ for(x in 1:length(sites)){
 ```
 
 ## Divide into plant and hummingbird transects
+
+This is producing empty hummingbird transect data!
 
 ```{r}
 hummingbird_transects<-transect_gps %>% filter(!hummingbird=="")
@@ -510,7 +512,7 @@ write.csv(camera_dat,"/Users/Ben/Dropbox/HummingbirdProject/Data/HummingbirdProj
 write.csv(camera_dat,"HummingbirdData/Cameras.csv")
 ```
 
-#Interaction Data
+# Interaction Data
 
 ```{r}
 int_files<-list.files(basename,recursive=TRUE,pattern="observations",full.names = T)

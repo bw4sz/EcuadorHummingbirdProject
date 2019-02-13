@@ -1,0 +1,429 @@
+---
+title: "Example Simulation for Hierarchical Models of Species Interactions"
+author: "Ben Weinstein"
+date: "2/13/2019"
+output: 
+  html_document:
+    numbered_section: True
+editor_options: 
+  chunk_output_type: console
+---
+
+The goal of this example is to demonstrate how to create a simple set of models to estimate interaction rates among species. We will use simulated data and try to recover the true values.
+
+# Simulate data
+
+```{r setup, echo=F,warning=F,message=F}
+library(dplyr)
+library(R2jags)
+library(ggplot2)
+library(stringr)
+library(reshape2)
+library(bipartite)
+set.seed(3)
+```
+
+Set up parameters, number of species in the network. 
+```{r}
+number_of_plants<- 4
+number_of_birds<- 3
+cameras_per_plant<- 20
+days_per_camera<- 4
+```
+
+True interaction probability. Here we draw random values to simulate the probability of each species interaction. This is alpha_i,j in the model.
+
+```{r}
+interaction_probability<- rbeta(n=number_of_birds*number_of_plants,1,1)
+
+#turn into a matrix, call this alpha
+alpha <- matrix(nrow=number_of_birds,ncol=number_of_plants,data=interaction_probability)
+```
+
+## Simulate binary interactions
+
+Let's begin with binary interactions with complete detection
+
+```{r}
+#observed dataframe, this is what our data will look like.
+counter<-1
+observed <- list()
+for(bird in 1:number_of_birds){
+  for(plant in 1:number_of_plants){
+    for(camera in 1:cameras_per_plant){
+      for(day in 1:days_per_camera){
+        #simulate an interaction
+        Y<-rbinom(n=1,size=1,prob=alpha[bird,plant])
+        observed[[counter]]<-data.frame(bird=bird,plant=plant,camera=camera,day=day,Y=Y)
+        counter<-counter+1
+      }
+    }
+  }
+}
+
+observed<-bind_rows(observed)
+#bind into a dataframe
+```
+
+What does our data look like?
+
+```{r}
+head(observed)
+dim(observed)
+```
+
+The goal now is to recover the alpha matrix.
+
+# Model 1: Complete detection
+
+Let's begin with perfect together. Any variance we see is entirely due to process uncertainty in the sampling.
+
+Model definition
+
+$$
+Y_{i,j,k,d} \sim Bernoulli(\alpha_{i,j})
+$$
+with flat priors
+
+$$
+\alpha_{i,j} \sim Beta(1,1)
+$$
+
+## Create a jags model.
+
+JAGS is a bayesian tool, similiar to WINBUGS, that allows us to define models and fit them using Gibbs sampling. It is a simple and straightforward interface with R.
+
+This isn't the only way to write in models, but it works when its useful to test things quickly.
+
+```{r}
+model_string<-"
+    model {
+    
+    for (x in 1:Nobs){
+    #observation
+    Y[x] ~ dbern(alpha[Bird[x],Plant[x]])
+    }
+    
+    
+    #Priors
+    #Species level priors
+    for (i in 1:Birds){
+      for (j in 1:Plants){
+        #Intercept
+        #logit prior, then transform for plotting
+        alpha[i,j] ~ dbeta(1,1)
+      } 
+    }
+    }
+    "
+```
+
+## Run the model
+
+```{r}
+
+#Parameters to track, this what will be returned
+ParsStage <- c("alpha")
+
+#Jags Data passed as named list
+Dat<-list(
+  Y=observed$Y,
+  Birds=number_of_birds,
+  Bird=observed$bird,
+  Plants=number_of_plants,
+  Plant=observed$plant,
+  Nobs=length(observed$Y))
+
+#MCMC options
+  system.time(
+    model<-jags(data=Dat,parameters.to.save=ParsStage,model.file=textConnection(model_string),n.thin=1,n.iter=5000,n.burnin=4500,n.chains=2,DIC=F)
+  )
+```
+
+## Look at output
+
+There is a bit of code here to extract the index from the alpha[i,j] parameter, so we can have a seperate bird and plant column
+
+```{r}
+getChains<-function(model_output){
+  pc<-reshape2::melt(model_output$BUGSoutput$sims.array)
+  colnames(pc)<-c("Draw","chain","par","value")
+  
+  #extract parameter name
+  pc$parameter<-data.frame(str_match(pc$par,"(\\w+)"))[,-1]
+  
+  #Extract index
+  splitpc<-split(pc,pc$parameter)
+  
+  #single index
+  splitpc[c("alpha")]<-lapply(
+    splitpc[c("alpha")],function(x){
+    sv<-data.frame(str_match(x$par,"(\\w+)\\[(\\d+),(\\d+)]"))[,3:4]
+    colnames(sv)<-c("bird","plant")
+    pc<-data.frame(x,sv)
+    })  
+  
+    #set chain number as character and bind
+    chains<-bind_rows(splitpc)
+    chains$chain<-as.character(chains$chain)
+
+  return(chains)
+}
+
+#Get the chains of the first model
+chains_m1<-getChains(model_output = model)
+
+head(chains_m1)
+```
+### View convergence
+
+```{r}
+ggplot(chains_m1,aes(x=Draw,col=chain,y=value)) + geom_line() + facet_grid(bird~plant)
+```
+
+## Posterior distributions
+
+View the estimated probability of interaction among species. In red vertical line is the true probability from the simulated data. 
+
+```{r}
+true_probability <- melt(alpha)
+colnames(true_probability)<-c("bird","plant","true_value")
+ggplot(chains_m1,aes(x=value)) + geom_density(fill="black")  + geom_vline(data=true_probability,aes(xintercept = true_value),col="red",linetype="dashed",size=1) + facet_grid(bird~plant)
+```
+
+Excellent, our estimated posterior distributions in black overlap with the true values. As data sizes increase, the variance in the posterior will decrease.
+
+# Incomplete detection
+
+Let's go back and simulate what happens if we have hummingbird species detection probabilities.
+
+## Simulate detection probabilities
+
+Incomplete detection, with detection being reasonably common, omega > 0.2. As detection probability decreases below 20%, we need more data.
+
+```{r}
+detection_probability<-runif(n=number_of_birds,0.2,1)
+```
+
+```{r}
+#observed dataframe
+counter<-1
+observed <- list()
+for(bird in 1:number_of_birds){
+  for(plant in 1:number_of_plants){
+    for(camera in 1:cameras_per_plant){
+        #simulate an interaction true state per camera
+        z<-rbinom(n=1,size=1,prob=alpha[bird,plant])
+        #simulate incomplete detection (omega)
+        phi = z * detection_probability[bird]
+      for(day in 1:days_per_camera){
+        #each day is an attempt to recover true state
+        Y<-rbinom(n=1,size=1,prob=phi)
+        #save 
+        observed[[counter]]<-data.frame(bird=bird,plant=plant,camera=camera,day=day,Y=Y)
+        counter<-counter+1
+      }
+    }
+  }
+}
+
+observed<-bind_rows(observed)
+```
+
+## Define model
+
+$$Y_{i,j,k,d} \sim Bernoulli(\phi_{i,j})$$
+
+$$\phi_{i,j} = z_{i,j,k} * \omega_i$$
+$$
+z_{i,j,k} \sim Bernoulli(\alpha_{i,j})
+$$
+with flat priors
+
+$$
+\alpha_{i,j} \sim Beta(1,1)
+$$
+
+$$
+\omega_{i} ~ Beta(1,1)
+$$
+
+## Create a jags model
+
+Now that we have an observation and process model, we define them seperately in jags for ease of readability.
+
+```{r}
+model_string<-"
+    model {
+    
+    #process model + incomplete detection
+
+    for(i in 1:Birds){
+      for(j in 1:Plants){
+        for(k in 1:Cameras){
+          z[i,j,k] ~ dbern(alpha[i,j])
+          phi[i,j,k] = z[i,j,k] * omega[i]
+        }
+      }
+    }
+
+    #observation 
+    for (x in 1:Nobs){
+      Y[x] ~ dbern(phi[Bird[x],Plant[x],Camera[x]])
+    }
+    
+    #Priors
+    #Species level priors
+    for (i in 1:Birds){
+      omega[i] ~ dbeta(1,1)
+      for (j in 1:Plants){
+        #Intercept
+        #logit prior, then transform for plotting
+        alpha[i,j] ~ dbeta(1,1)
+      } 
+    }
+    }
+    "
+```
+
+## Run the model
+
+Because we now have a latent (unobserved) state, z, we need to define a initial data matrix. We should also sample much longer and thin the chains to reduce autocorrelation.
+
+```{r}
+
+#Parameters to track, this what will be returned
+ParsStage <- c("alpha","omega")
+
+#Define latent states, jags takes this in as a function that creates a named list.
+  InitStage <- function(){
+    #its often useful to make the initial state present in a binary model, or a large number in a quantitative model
+    z<-array(dim=c(number_of_birds,number_of_plants,cameras_per_plant),data=1)
+    list(z=z)}
+
+#Jags Data passed as named list
+Dat<-list(
+  Y=observed$Y,
+  Birds=number_of_birds,
+  Bird=observed$bird,
+  Plants=number_of_plants,
+  Plant=observed$plant,
+  Cameras=cameras_per_plant,
+  Camera=observed$camera,
+  Nobs=length(observed$Y))
+
+#MCMC options
+  system.time(
+    model<-jags(data=Dat,parameters.to.save=ParsStage,inits = InitStage,model.file=textConnection(model_string),n.thin=2,n.iter=100000,n.burnin=95000,n.chains=2,DIC=F)
+  )
+```
+
+```{r}
+getChains<-function(model_output){
+  pc<-reshape2::melt(model_output$BUGSoutput$sims.array)
+  colnames(pc)<-c("Draw","chain","par","value")
+  
+  #extract parameter name
+  pc$parameter<-data.frame(str_match(pc$par,"(\\w+)"))[,-1]
+  
+  #Extract index
+  splitpc<-split(pc,pc$parameter)
+  
+  #single index
+  splitpc[c("omega")]<-lapply(
+    splitpc[c("omega")],function(x){
+    sv<-data.frame(str_match(x$par,"(\\w+)\\[(\\d+)]"))[,3]
+    pc<-data.frame(x,bird=sv)
+    })  
+  
+  #double index
+  splitpc[c("alpha")]<-lapply(
+    splitpc[c("alpha")],function(x){
+    sv<-data.frame(str_match(x$par,"(\\w+)\\[(\\d+),(\\d+)]"))[,3:4]
+    colnames(sv)<-c("bird","plant")
+    pc<-data.frame(x,sv)
+    })  
+  
+    #set chain number as character and bind
+    chains<-bind_rows(splitpc)
+    chains$chain<-as.character(chains$chain)
+
+  return(chains)
+}
+
+#Get the chains of the first model
+chains_m2<-getChains(model_output = model)
+
+head(chains_m2)
+```
+
+## View convergence
+
+### Alpha: The probability of interaction
+
+```{r}
+chains_m2 %>% filter(parameter=="alpha") %>% ggplot(.,aes(x=Draw,col=chain,y=value)) + geom_line() + facet_grid(bird~plant)
+```
+
+### Omega: The detection probability for bird species
+
+```{r}
+chains_m2 %>% filter(parameter=="omega") %>% ggplot(.,aes(x=Draw,col=chain,y=value)) + geom_line() + facet_wrap(~bird)
+```
+
+## Posterior distributions
+
+### Alpha
+
+```{r}
+chains_m2 %>% filter(parameter =="alpha") %>% ggplot(.,aes(x=value)) + geom_density(fill="black")  + geom_vline(data=true_probability,aes(xintercept = true_value),col="red",linetype="dashed",size=1) + facet_grid(bird~plant) + xlim(0,1)
+```
+
+Looking pretty good, despite incomplete detection, we can recover the true state fairly accurately. 
+
+### Omega
+
+```{r}
+true_detection_probability <- data.frame(bird=1:number_of_birds,true_value=detection_probability)
+chains_m2 %>% filter(parameter =="omega") %>% ggplot(.,aes(x=value)) + geom_density(fill="black")  + geom_vline(data=true_detection_probability,aes(xintercept = true_value),col="red",linetype="dashed",size=1) + facet_wrap(~bird) + xlim(0,1)
+```
+
+I'm pretty happy with that. While its true we missed the detection probability by about 10% for species 2, this would not have huge biological relevance. I've tried to make the parameters in this simulation reasonable to our field sampling protocols.
+
+# Generate networks
+
+There are few ways to generate a network from the posterior distribution. Here is an easy one. 
+
+```{r}
+makeNetwork<-function(chains){
+  result<-matrix(nrow=number_of_birds,ncol=number_of_plants)
+  for(i in 1:number_of_birds){
+    for(j in 1:number_of_plants){
+      #sample one row from the posterior
+      sample_alpha<-chains %>% filter(bird==i,plant==j,parameter=="alpha") %>% sample_n(1) %>% .$value
+      result[i,j]<-rbinom(n=1,size=1,prob=sample_alpha)
+    }
+  }
+  return(result)
+}
+```
+
+### Generate 500 networks
+
+```{r}
+networks<-replicate(n = 1000,makeNetwork(chains_m2),simplify = F)
+```
+
+### Calculate network stats
+
+```{r}
+netStat<-function(network){
+  data.frame(index=c("connectance","nestedness"),value=networklevel(network,index = c("connectance","nestedness")))
+}
+
+stats <- bind_rows(lapply(networks,netStat))
+```
+
+```{r}
+ggplot(stats,aes(x=index,y=value)) + geom_boxplot(fill="grey50") + facet_wrap(~index,scale="free")
+```

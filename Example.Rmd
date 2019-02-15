@@ -23,7 +23,7 @@ library(boot)
 library(tidyr)
 library(bipartite)
 
-set.seed(3)
+set.seed(2)
 ```
 
 Set up parameters, number of species in the network. 
@@ -31,7 +31,8 @@ Set up parameters, number of species in the network.
 number_of_plants<- 4
 number_of_birds<- 3
 cameras_per_plant<- 25
-days_per_camera<- 3
+days_per_camera<- 4
+
 ```
 
 True interaction probability. Here we draw random values to simulate the probability of each species interaction. This is alpha_i,j in the model.
@@ -217,9 +218,11 @@ for(bird in 1:number_of_birds){
     for(camera in 1:cameras_per_plant){
         #simulate an interaction true state per camera
         z<-rbinom(n=1,size=1,prob=alpha[bird,plant])
+        
         #simulate incomplete detection (omega)
         phi = z * detection_probability[bird]
       for(day in 1:days_per_camera){
+        
         #each day is an attempt to recover true state
         Y<-rbinom(n=1,size=1,prob=phi)
         #save 
@@ -441,7 +444,7 @@ beta_elevation <- c()
 alpha_elevation <-c()
 
 for(x in 1:number_of_birds){
-  beta_elevation[x]<-rnorm(1,0,7)
+  beta_elevation[x]<-rnorm(1,0,10)
   alpha_elevation[x]<-runif(1,0,1)
 }
 
@@ -517,7 +520,7 @@ $$ \rho_{i,j,k} = \psi_{i,j,k} * \alpha_{i,j}$$
 
 $$ \psi_{i,j,k} \sim Bernoulli(occ_{i,j,k}) $$
 
-$$ logit(occ_{i,j,k}) = lambda_{i,elev_k} + beta_i * elevation_k $$
+$$ logit(occ_{i,j,k}) = \lambda_{i,elev_k} + \beta_i * elevation_k $$
 
 with flat priors
 
@@ -606,7 +609,7 @@ Dat<-list(
 
 #MCMC options
   system.time(
-    model<-jags(data=Dat,parameters.to.save=ParsStage,inits = InitStage,model.file=textConnection(model_string),n.thin=2,n.iter=150000,n.burnin=149000,n.chains=2,DIC=F)
+    model<-jags(data=Dat,parameters.to.save=ParsStage,inits = InitStage,model.file=textConnection(model_string),n.thin=2,n.iter=200000,n.burnin=199000,n.chains=2,DIC=F)
   )
 ```
 

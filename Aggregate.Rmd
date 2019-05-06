@@ -32,7 +32,7 @@ basename="/Users/Ben/Dropbox/HummingbirdProject/Data/"
 From Fransisco's dropbox. Live updating to reflect new identifications.
 
 ```{r,eval=T}
-taxsheet<-read_excel("/Users/ben/Dropbox/Lista Planta final/LISTA PLANTA_FINAL_TODOS_150119.xls") %>% select(Site,"field_name (AyC)","ID_final") %>% rename(plant_field_name=`field_name (AyC)`,final_plant_name=`ID_final`)
+taxsheet<-read_excel("/Users/ben/Dropbox/Lista Planta final/Lista planta final_11042019.xlsx") %>% select(Site,"field_name (AyC)","ID_final") %>% rename(plant_field_name=`field_name (AyC)`,final_plant_name=`ID_final`)
 
 abb<-data.frame(Site=c("RUMI","MSPL","VECO","MSPC","ALAS","GRAL","UPDC","MAQUI","UPDCD","YANA","YANAD","ALASD","STLU","PUYU","SACH","STLL","SACHD","AMAG","SANTA","AMAGD","BELLA","CAMBA"),FullSite=c("Rumisitana","MashpiLaguna","Verdecocha","MashpiCapuchin","Alaspungo","LasGralarias","UnPocoDelChoco","Maquipucuna","UnPocoDelChoco_disturbed","Yanacocha","Yanacocha_disturbed","Alaspungo_disturbed","SantaLuciaUpper","Puyucunapi","Sachatamia","SantaLuciaLower","Sachatamia_disturbed","Amagusa","Santa Lucia","Amagusa_disturbed","Bellavista","Cambugan"))
 taxsheet<-taxsheet %>% left_join(abb)
@@ -342,7 +342,8 @@ hummingbird_transects<-transect_gps %>% filter(!hummingbird=="")
 
 #only hummingbirds
 Sys.setenv(ENTREZ_KEY="f00b6e4c6b153028dfbe9389cd18f0a46b08")
-isclass<-tax_name(query = levels(hummingbird_transects$hummingbird), get = "family", db = "ncbi")
+hummingbird_transects$hummingbird<-as.factor(hummingbird_transects$hummingbird)
+isclass<-tax_name(query = levels(hummingbird_transects$hummingbird), get = "family", db="ncbi")
 troch_keep<-isclass %>% filter(family %in% c("Trochilidae","Thraupidae")) %>% .$query
 hummingbird_transects<-hummingbird_transects %>% filter(hummingbird %in% troch_keep) %>% droplevels()
 

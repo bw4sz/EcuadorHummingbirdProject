@@ -32,7 +32,7 @@ basename="/Users/Ben/Dropbox/HummingbirdProject/Data/"
 From Fransisco's dropbox. Live updating to reflect new identifications.
 
 ```{r,eval=T}
-taxsheet<-read_excel("/Users/ben/Dropbox/Lista Planta final/Lista planta final_11042019.xlsx") %>% select(Site,"field_name (AyC)","ID_final") %>% rename(plant_field_name=`field_name (AyC)`,final_plant_name=`ID_final`)
+taxsheet<-read_excel("/Users/ben/Dropbox/Lista Planta final/Lista planta final_12082019.xlsx") %>% select(Site,"field_name (AyC)","ID_final") %>% rename(plant_field_name=`field_name (AyC)`,final_plant_name=`ID_final`)
 
 abb<-data.frame(Site=c("RUMI","MSPL","VECO","MSPC","ALAS","GRAL","UPDC","MAQUI","UPDCD","YANA","YANAD","ALASD","STLU","PUYU","SACH","STLL","SACHD","AMAG","SANTA","AMAGD","BELLA","CAMBA"),FullSite=c("Rumisitana","MashpiLaguna","Verdecocha","MashpiCapuchin","Alaspungo","LasGralarias","UnPocoDelChoco","Maquipucuna","UnPocoDelChoco_disturbed","Yanacocha","Yanacocha_disturbed","Alaspungo_disturbed","SantaLuciaUpper","Puyucunapi","Sachatamia","SantaLuciaLower","Sachatamia_disturbed","Amagusa","Santa Lucia","Amagusa_disturbed","Bellavista","Cambugan"))
 taxsheet<-taxsheet %>% left_join(abb)
